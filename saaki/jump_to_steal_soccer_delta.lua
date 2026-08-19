@@ -1,6 +1,6 @@
 -- =========================================================================
 -- ⚽ JUMP TO STEAL SOCCER PLAYERS (ROBLOX) - DELTA EXECUTOR HUB ⚽
--- Clean Version: Fly Mode | WalkSpeed Slider | Noclip | Infinite Jump
+-- Features: 1. Fly Mode | 2. WalkSpeed Slider | 3. Noclip | 4. Infinite Jump
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -12,7 +12,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- Safe CoreGui / PlayerGui Parent for Mobile/PC Executors
+-- Safe Parent Selection for CoreGui / PlayerGui
 local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
 pcall(function()
     if game:GetService("CoreGui") then
@@ -20,19 +20,16 @@ pcall(function()
     end
 end)
 
--- Cleanup existing instance if re-executed
+-- Cleanup existing UI if re-executing
 if TargetParent:FindFirstChild("JumpToStealDeltaHub") then
     TargetParent:FindFirstChild("JumpToStealDeltaHub"):Destroy()
 end
 
--- Feature State Flags
-local States = {
-    Fly = false,
-    FlySpeed = 50,
-    WalkSpeed = 16,
-    Noclip = false,
-    InfJump = false
-}
+-- Global Feature States
+local FlyState = false
+local CurrentWalkSpeed = 16
+local NoclipState = false
+local InfJumpState = false
 
 -- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
@@ -40,15 +37,14 @@ ScreenGui.Name = "JumpToStealDeltaHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = TargetParent
 
--- Floating Mobile Toggle Button
+-- Floating Mobile Button (Icon to toggle UI)
 local MobileButton = Instance.new("TextButton")
 MobileButton.Name = "MobileToggle"
-MobileButton.Size = UDim2.new(0, 45, 0, 45)
-MobileButton.Position = UDim2.new(0, 15, 0.5, -22)
-MobileButton.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MobileButton.Size = UDim2.new(0, 48, 0, 48)
+MobileButton.Position = UDim2.new(0, 15, 0.4, 0)
+MobileButton.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 MobileButton.Text = "⚽"
 MobileButton.TextSize = 22
-MobileButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MobileButton.Active = true
 MobileButton.Draggable = true
 MobileButton.Parent = ScreenGui
@@ -62,11 +58,11 @@ MobileStroke.Color = Color3.fromRGB(0, 170, 255)
 MobileStroke.Thickness = 2
 MobileStroke.Parent = MobileButton
 
--- Main Container Frame
+-- Main Container Window
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 240, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -120, 0.4, -155)
+MainFrame.Size = UDim2.new(0, 230, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -115, 0.4, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -82,10 +78,10 @@ MainStroke.Color = Color3.fromRGB(0, 150, 255)
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- Header Title Bar
+-- Window Header
 local Header = Instance.new("Frame")
 Header.Name = "Header"
-Header.Size = UDim2.new(1, 0, 0, 42)
+Header.Size = UDim2.new(1, 0, 0, 40)
 Header.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 Header.BorderSizePixel = 0
 Header.Parent = MainFrame
@@ -106,11 +102,10 @@ TitleLabel.Font = Enum.Font.FredokaOne
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = Header
 
--- Minimize Arrow Button
 local ToggleArrow = Instance.new("TextButton")
 ToggleArrow.Name = "ToggleArrow"
 ToggleArrow.Size = UDim2.new(0, 30, 0, 30)
-ToggleArrow.Position = UDim2.new(1, -34, 0, 6)
+ToggleArrow.Position = UDim2.new(1, -34, 0, 5)
 ToggleArrow.BackgroundTransparency = 1
 ToggleArrow.Text = "V"
 ToggleArrow.TextColor3 = Color3.fromRGB(180, 180, 190)
@@ -118,33 +113,31 @@ ToggleArrow.TextSize = 14
 ToggleArrow.Font = Enum.Font.SourceSansBold
 ToggleArrow.Parent = Header
 
--- Scrolling Content Frame
-local ContentScroll = Instance.new("ScrollingFrame")
-ContentScroll.Name = "ContentScroll"
-ContentScroll.Size = UDim2.new(1, -16, 1, -52)
-ContentScroll.Position = UDim2.new(0, 8, 0, 46)
-ContentScroll.BackgroundTransparency = 1
-ContentScroll.ScrollBarThickness = 4
-ContentScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
-ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 240)
-ContentScroll.Parent = MainFrame
+-- Content Layout Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, -16, 1, -50)
+ContentFrame.Position = UDim2.new(0, 8, 0, 44)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.Parent = ContentScroll
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Parent = ContentFrame
 
--- Helper Function to Create Toggle Buttons
-local function CreateToggle(name, labelText, defaultState, callback)
+-- Helper Function: Checkbox Toggle Component
+local function CreateCheckbox(labelText, order, defaultState, callback)
     local Button = Instance.new("TextButton")
-    Button.Name = name
-    Button.Size = UDim2.new(1, -4, 0, 36)
-    Button.BackgroundColor3 = defaultState and Color3.fromRGB(0, 140, 90) or Color3.fromRGB(28, 28, 36)
+    Button.Name = "Checkbox_" .. labelText
+    Button.Size = UDim2.new(1, 0, 0, 38)
+    Button.BackgroundColor3 = defaultState and Color3.fromRGB(0, 150, 90) or Color3.fromRGB(26, 26, 34)
     Button.Text = labelText .. (defaultState and " [ON]" or " [OFF]")
     Button.TextColor3 = Color3.fromRGB(255, 255, 255)
     Button.Font = Enum.Font.SourceSansBold
     Button.TextSize = 13
-    Button.Parent = ContentScroll
+    Button.LayoutOrder = order
+    Button.Parent = ContentFrame
 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
@@ -155,199 +148,280 @@ local function CreateToggle(name, labelText, defaultState, callback)
     Stroke.Thickness = 1
     Stroke.Parent = Button
 
+    local isChecked = defaultState
+
     Button.MouseButton1Click:Connect(function()
-        States[name] = not States[name]
-        Button.BackgroundColor3 = States[name] and Color3.fromRGB(0, 140, 90) or Color3.fromRGB(28, 28, 36)
-        Button.Text = labelText .. (States[name] and " [ON]" or " [OFF]")
-        if callback then
-            callback(States[name])
+        isChecked = not isChecked
+        Button.BackgroundColor3 = isChecked and Color3.fromRGB(0, 150, 90) or Color3.fromRGB(26, 26, 34)
+        Button.Text = labelText .. (isChecked and " [ON]" or " [OFF]")
+        callback(isChecked)
+    end)
+end
+
+-- Helper Function: Slider Bar Component
+local function CreateSliderBar(order)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Name = "SliderFrame"
+    SliderFrame.Size = UDim2.new(1, 0, 0, 48)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+    SliderFrame.LayoutOrder = order
+    SliderFrame.Parent = ContentFrame
+
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(0, 8)
+    SliderCorner.Parent = SliderFrame
+
+    local Label = Instance.new("TextLabel")
+    Label.Name = "Label"
+    Label.Size = UDim2.new(0.65, 0, 0, 20)
+    Label.Position = UDim2.new(0, 8, 0, 3)
+    Label.BackgroundTransparency = 1
+    Label.Text = "⚡ WalkSpeed"
+    Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Label.Font = Enum.Font.SourceSansBold
+    Label.TextSize = 13
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = SliderFrame
+
+    local ValueDisplay = Instance.new("TextLabel")
+    ValueDisplay.Name = "ValueDisplay"
+    ValueDisplay.Size = UDim2.new(0.3, 0, 0, 20)
+    ValueDisplay.Position = UDim2.new(0.68, 0, 0, 3)
+    ValueDisplay.BackgroundTransparency = 1
+    ValueDisplay.Text = "16"
+    ValueDisplay.TextColor3 = Color3.fromRGB(0, 170, 255)
+    ValueDisplay.Font = Enum.Font.SourceSansBold
+    ValueDisplay.TextSize = 13
+    ValueDisplay.TextXAlignment = Enum.TextXAlignment.Right
+    ValueDisplay.Parent = SliderFrame
+
+    local Track = Instance.new("Frame")
+    Track.Name = "Track"
+    Track.Size = UDim2.new(1, -16, 0, 12)
+    Track.Position = UDim2.new(0, 8, 0, 26)
+    Track.BackgroundColor3 = Color3.fromRGB(36, 36, 48)
+    Track.BorderSizePixel = 0
+    Track.Parent = SliderFrame
+
+    local TrackCorner = Instance.new("UICorner")
+    TrackCorner.CornerRadius = UDim.new(0, 6)
+    TrackCorner.Parent = Track
+
+    local Fill = Instance.new("Frame")
+    Fill.Name = "Fill"
+    Fill.Size = UDim2.new(0, 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = Track
+
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 6)
+    FillCorner.Parent = Fill
+
+    local Knob = Instance.new("TextButton")
+    Knob.Name = "Knob"
+    Knob.Size = UDim2.new(0, 16, 0, 16)
+    Knob.Position = UDim2.new(0, -8, 0.5, -8)
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.BorderSizePixel = 0
+    Knob.Text = ""
+    Knob.Parent = Track
+
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(1, 0)
+    KnobCorner.Parent = Knob
+
+    local minVal = 16
+    local maxVal = 150
+    local dragging = false
+
+    local function updateSlider(input)
+        local posX = math.clamp(input.Position.X - Track.AbsolutePosition.X, 0, Track.AbsoluteSize.X)
+        local percentage = posX / math.max(Track.AbsoluteSize.X, 1)
+        local val = math.floor(minVal + (maxVal - minVal) * percentage)
+        
+        Fill.Size = UDim2.new(percentage, 0, 1, 0)
+        Knob.Position = UDim2.new(percentage, -8, 0.5, -8)
+        ValueDisplay.Text = tostring(val)
+        CurrentWalkSpeed = val
+
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char:FindFirstChildOfClass("Humanoid").WalkSpeed = val
+        end
+    end
+
+    Knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
         end
     end)
-    return Button
+
+    Track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateSlider(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
 end
 
--- 1. Fly Mode Toggle
-local bodyGyro, bodyVel
-CreateToggle("Fly", "🕊️ Fly Mode", false, function(state)
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
+-- =========================================================================
+-- INITIALIZING THE 4 requested FEATURES
+-- =========================================================================
 
-    if state then
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.P = 9e4
-        bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bodyGyro.cframe = root.CFrame
-        bodyGyro.Parent = root
+-- 1. Fly Mode
+local bodyVel, bodyGyro
+CreateCheckbox("🕊️ Fly Mode", 1, false, function(state)
+    FlyState = state
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:FindFirstChildOfClass("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-        bodyVel = Instance.new("BodyVelocity")
-        bodyVel.velocity = Vector3.new(0, 0, 0)
-        bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
-        bodyVel.Parent = root
+    if FlyState then
+        if not root then return end
+        pcall(function()
+            bodyVel = Instance.new("BodyVelocity")
+            bodyVel.Velocity = Vector3.zero
+            bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            bodyVel.Parent = root
 
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = true end
+            bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.CFrame = root.CFrame
+            bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bodyGyro.P = 9e4
+            bodyGyro.Parent = root
+        end)
+
+        task.spawn(function()
+            while FlyState do
+                pcall(function()
+                    local currentChar = LocalPlayer.Character
+                    local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+                    if currentHum then currentHum.PlatformStand = true end
+                    
+                    local moveDir = currentHum and currentHum.MoveDirection or Vector3.zero
+                    local camCF = Workspace.CurrentCamera.CFrame
+
+                    local velocity = Vector3.zero
+                    if moveDir.Magnitude > 0 then
+                        velocity = (camCF.LookVector * -moveDir.Z + camCF.RightVector * moveDir.X).Unit * 60
+                    end
+
+                    if bodyVel and bodyVel.Parent then bodyVel.Velocity = velocity end
+                    if bodyGyro and bodyGyro.Parent then bodyGyro.CFrame = camCF end
+                end)
+                task.wait()
+            end
+
+            pcall(function()
+                if bodyVel then bodyVel:Destroy() end
+                if bodyGyro then bodyGyro:Destroy() end
+                local currentHum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if currentHum then currentHum.PlatformStand = false end
+            end)
+        end)
     else
-        if bodyGyro then bodyGyro:Destroy() end
-        if bodyVel then bodyVel:Destroy() end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = false end
+        pcall(function()
+            if bodyVel then bodyVel:Destroy() end
+            if bodyGyro then bodyGyro:Destroy() end
+            if humanoid then humanoid.PlatformStand = false end
+        end)
     end
 end)
 
--- 2. WalkSpeed Slider Bar
-local SpeedFrame = Instance.new("Frame")
-SpeedFrame.Name = "SpeedFrame"
-SpeedFrame.Size = UDim2.new(1, -4, 0, 48)
-SpeedFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-SpeedFrame.Parent = ContentScroll
+-- 2. WalkSpeed Slider
+CreateSliderBar(2)
 
-local SpeedCorner = Instance.new("UICorner")
-SpeedCorner.CornerRadius = UDim.new(0, 8)
-SpeedCorner.Parent = SpeedFrame
-
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Name = "SpeedLabel"
-SpeedLabel.Size = UDim2.new(1, -10, 0, 20)
-SpeedLabel.Position = UDim2.new(0, 8, 0, 3)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Text = "⚡ WalkSpeed: 16"
-SpeedLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
-SpeedLabel.Font = Enum.Font.SourceSansBold
-SpeedLabel.TextSize = 13
-SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
-SpeedLabel.Parent = SpeedFrame
-
-local SpeedBarBg = Instance.new("Frame")
-SpeedBarBg.Name = "SpeedBarBg"
-SpeedBarBg.Size = UDim2.new(1, -16, 0, 10)
-SpeedBarBg.Position = UDim2.new(0, 8, 0, 28)
-SpeedBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 52)
-SpeedBarBg.Parent = SpeedFrame
-
-local SpeedBarFill = Instance.new("Frame")
-SpeedBarFill.Name = "SpeedBarFill"
-SpeedBarFill.Size = UDim2.new(0, 0, 1, 0)
-SpeedBarFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-SpeedBarFill.BorderSizePixel = 0
-SpeedBarFill.Parent = SpeedBarBg
-
-local SpeedTouchBtn = Instance.new("TextButton")
-SpeedTouchBtn.Name = "SpeedTouchBtn"
-SpeedTouchBtn.Size = UDim2.new(1, 0, 1, 0)
-SpeedTouchBtn.BackgroundTransparency = 1
-SpeedTouchBtn.Text = ""
-SpeedTouchBtn.Parent = SpeedBarBg
-
-local function UpdateSpeed(inputPos)
-    local barAbsPos = SpeedBarBg.AbsolutePosition.X
-    local barAbsSize = SpeedBarBg.AbsoluteSize.X
-    local relativeX = math.clamp(inputPos.X - barAbsPos, 0, barAbsSize)
-    local percentage = relativeX / barAbsSize
-    local newSpeed = math.floor(16 + (percentage * (120 - 16)))
-    
-    States.WalkSpeed = newSpeed
-    SpeedBarFill.Size = UDim2.new(percentage, 0, 1, 0)
-    SpeedLabel.Text = "⚡ WalkSpeed: " .. tostring(newSpeed)
-    
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = newSpeed
-    end
-end
-
-local draggingSpeed = false
-SpeedTouchBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSpeed = true
-        UpdateSpeed(input.Position)
-    end
+-- 3. Noclip
+CreateCheckbox("🧱 Noclip (Walk Walls)", 3, false, function(state)
+    NoclipState = state
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if draggingSpeed and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        UpdateSpeed(input.Position)
-    end
+-- 4. Infinite Jump
+CreateCheckbox("🦘 Infinite Jump", 4, false, function(state)
+    InfJumpState = state
 end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSpeed = false
-    end
-end)
-
--- 3. Noclip Toggle
-CreateToggle("Noclip", "🧱 Noclip (Walk Through Walls)", false, function(state) end)
-
--- 4. Infinite Jump Toggle
-CreateToggle("InfJump", "🦘 Infinite Jump", false, function(state) end)
-
--- Minimize / Mobile UI Toggle Connections
-local isMinimized = false
-local function ToggleUIVisibility()
-    isMinimized = not isMinimized
-    MainFrame.Visible = not isMinimized
-    ToggleArrow.Text = isMinimized and "^" or "V"
-end
-
-ToggleArrow.MouseButton1Click:Connect(ToggleUIVisibility)
-MobileButton.MouseButton1Click:Connect(ToggleUIVisibility)
 
 -- =========================================================================
--- RENDERSTEPPED / LOOP MECHANICS
+-- ENGINE LOOPS & HANDLERS
 -- =========================================================================
 
-RunService.RenderStepped:Connect(function()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-
-    -- WalkSpeed Enforcement
-    if hum and States.WalkSpeed > 16 then
-        hum.WalkSpeed = States.WalkSpeed
-    end
-
-    -- Noclip Loop
-    if States.Noclip then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+-- WalkSpeed Loop
+task.spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum.WalkSpeed ~= CurrentWalkSpeed and CurrentWalkSpeed > 16 then
+                    hum.WalkSpeed = CurrentWalkSpeed
+                end
             end
-        end
-    end
-
-    -- Fly Loop
-    if States.Fly and root and bodyGyro and bodyVel then
-        bodyGyro.cframe = Camera.CFrame
-        local moveDir = hum and hum.MoveDirection or Vector3.new(0, 0, 0)
-        
-        if moveDir.Magnitude > 0 then
-            bodyVel.velocity = Camera.CFrame:VectorToWorldSpace(Camera.CFrame:VectorToObjectSpace(moveDir * States.FlySpeed))
-        else
-            bodyVel.velocity = Vector3.new(0, 0, 0)
-        end
+        end)
     end
 end)
 
--- Infinite Jump Request
+-- Noclip Physics Stepped Connection
+RunService.Stepped:Connect(function()
+    if NoclipState then
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Infinite Jump Request Handler
 UserInputService.JumpRequest:Connect(function()
-    if States.InfJump then
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    if InfJumpState then
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
             end
-        end
+        end)
     end
 end)
 
--- Anti-AFK Kick Prevention
+-- Toggle UI Display Connections
+local isHidden = false
+local function ToggleUI()
+    isHidden = not isHidden
+    MainFrame.Visible = not isHidden
+    ToggleArrow.Text = isHidden and "^" or "V"
+end
+
+ToggleArrow.MouseButton1Click:Connect(ToggleUI)
+MobileButton.MouseButton1Click:Connect(ToggleUI)
+
+-- Anti-AFK Handler
 LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
-    task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+    pcall(function()
+        VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    end)
 end)
 
-print("⚽ Jump To Steal Soccer Hub (4 Features Clean Edition) Loaded!")
+print("⚽ Jump To Steal Soccer Hub Ready!")
