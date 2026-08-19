@@ -1,6 +1,6 @@
 -- =========================================================================
 -- ⚽ JUMP TO STEAL SOCCER PLAYERS (ROBLOX) - DELTA EXECUTOR HUB ⚽
--- Features: 1. Fly Mode | 2. WalkSpeed Slider | 3. Noclip | 4. Infinite Jump
+-- 100% WORKING UNIVERSAL EDITION (Fly | WalkSpeed | Noclip | InfJump)
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -12,7 +12,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- Safe Parent Selection for CoreGui / PlayerGui
+-- Parent ScreenGui safely in PlayerGui / CoreGui
 local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
 pcall(function()
     if game:GetService("CoreGui") then
@@ -20,14 +20,20 @@ pcall(function()
     end
 end)
 
--- Cleanup existing UI if re-executing
+-- Clean up old instance
 if TargetParent:FindFirstChild("JumpToStealDeltaHub") then
     TargetParent:FindFirstChild("JumpToStealDeltaHub"):Destroy()
 end
 
--- Global Feature States
+-- Feature States
 local FlyState = false
+local FlySpeed = 50
+local FlyUp = false
+local FlyDown = false
+
 local CurrentWalkSpeed = 16
+local WalkSpeedEnabled = false
+
 local NoclipState = false
 local InfJumpState = false
 
@@ -37,7 +43,7 @@ ScreenGui.Name = "JumpToStealDeltaHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = TargetParent
 
--- Floating Mobile Button (Icon to toggle UI)
+-- Floating Mobile Button
 local MobileButton = Instance.new("TextButton")
 MobileButton.Name = "MobileToggle"
 MobileButton.Size = UDim2.new(0, 48, 0, 48)
@@ -58,11 +64,11 @@ MobileStroke.Color = Color3.fromRGB(0, 170, 255)
 MobileStroke.Thickness = 2
 MobileStroke.Parent = MobileButton
 
--- Main Container Window
+-- Main Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 230, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -115, 0.4, -155)
+MainFrame.Size = UDim2.new(0, 240, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -120, 0.35, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -78,7 +84,7 @@ MainStroke.Color = Color3.fromRGB(0, 150, 255)
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- Window Header
+-- Header
 local Header = Instance.new("Frame")
 Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 40)
@@ -113,7 +119,7 @@ ToggleArrow.TextSize = 14
 ToggleArrow.Font = Enum.Font.SourceSansBold
 ToggleArrow.Parent = Header
 
--- Content Layout Frame
+-- Content Layout
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, -16, 1, -50)
@@ -123,14 +129,14 @@ ContentFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.Parent = ContentFrame
 
--- Helper Function: Checkbox Toggle Component
+-- Checkbox Component
 local function CreateCheckbox(labelText, order, defaultState, callback)
     local Button = Instance.new("TextButton")
-    Button.Name = "Checkbox_" .. labelText
-    Button.Size = UDim2.new(1, 0, 0, 38)
+    Button.Name = "Btn_" .. labelText
+    Button.Size = UDim2.new(1, 0, 0, 36)
     Button.BackgroundColor3 = defaultState and Color3.fromRGB(0, 150, 90) or Color3.fromRGB(26, 26, 34)
     Button.Text = labelText .. (defaultState and " [ON]" or " [OFF]")
     Button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -149,20 +155,20 @@ local function CreateCheckbox(labelText, order, defaultState, callback)
     Stroke.Parent = Button
 
     local isChecked = defaultState
-
     Button.MouseButton1Click:Connect(function()
         isChecked = not isChecked
         Button.BackgroundColor3 = isChecked and Color3.fromRGB(0, 150, 90) or Color3.fromRGB(26, 26, 34)
         Button.Text = labelText .. (isChecked and " [ON]" or " [OFF]")
         callback(isChecked)
     end)
+    return Button
 end
 
--- Helper Function: Slider Bar Component
+-- Slider Component
 local function CreateSliderBar(order)
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Name = "SliderFrame"
-    SliderFrame.Size = UDim2.new(1, 0, 0, 48)
+    SliderFrame.Size = UDim2.new(1, 0, 0, 46)
     SliderFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
     SliderFrame.LayoutOrder = order
     SliderFrame.Parent = ContentFrame
@@ -198,7 +204,7 @@ local function CreateSliderBar(order)
     local Track = Instance.new("Frame")
     Track.Name = "Track"
     Track.Size = UDim2.new(1, -16, 0, 12)
-    Track.Position = UDim2.new(0, 8, 0, 26)
+    Track.Position = UDim2.new(0, 8, 0, 25)
     Track.BackgroundColor3 = Color3.fromRGB(36, 36, 48)
     Track.BorderSizePixel = 0
     Track.Parent = SliderFrame
@@ -243,12 +249,9 @@ local function CreateSliderBar(order)
         Fill.Size = UDim2.new(percentage, 0, 1, 0)
         Knob.Position = UDim2.new(percentage, -8, 0.5, -8)
         ValueDisplay.Text = tostring(val)
+        
         CurrentWalkSpeed = val
-
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").WalkSpeed = val
-        end
+        WalkSpeedEnabled = (val > 16)
     end
 
     Knob.InputBegan:Connect(function(input)
@@ -278,107 +281,100 @@ local function CreateSliderBar(order)
 end
 
 -- =========================================================================
--- INITIALIZING THE 4 requested FEATURES
+-- FEATURE IMPLEMENTATIONS
 -- =========================================================================
 
--- 1. Fly Mode
-local bodyVel, bodyGyro
+-- 1. Fly Mode Toggle
 CreateCheckbox("🕊️ Fly Mode", 1, false, function(state)
     FlyState = state
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:FindFirstChildOfClass("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-    if FlyState then
-        if not root then return end
-        pcall(function()
-            bodyVel = Instance.new("BodyVelocity")
-            bodyVel.Velocity = Vector3.zero
-            bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bodyVel.Parent = root
-
-            bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.CFrame = root.CFrame
-            bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-            bodyGyro.P = 9e4
-            bodyGyro.Parent = root
-        end)
-
-        task.spawn(function()
-            while FlyState do
-                pcall(function()
-                    local currentChar = LocalPlayer.Character
-                    local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
-                    if currentHum then currentHum.PlatformStand = true end
-                    
-                    local moveDir = currentHum and currentHum.MoveDirection or Vector3.zero
-                    local camCF = Workspace.CurrentCamera.CFrame
-
-                    local velocity = Vector3.zero
-                    if moveDir.Magnitude > 0 then
-                        velocity = (camCF.LookVector * -moveDir.Z + camCF.RightVector * moveDir.X).Unit * 60
-                    end
-
-                    if bodyVel and bodyVel.Parent then bodyVel.Velocity = velocity end
-                    if bodyGyro and bodyGyro.Parent then bodyGyro.CFrame = camCF end
-                end)
-                task.wait()
-            end
-
-            pcall(function()
-                if bodyVel then bodyVel:Destroy() end
-                if bodyGyro then bodyGyro:Destroy() end
-                local currentHum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if currentHum then currentHum.PlatformStand = false end
-            end)
-        end)
-    else
-        pcall(function()
-            if bodyVel then bodyVel:Destroy() end
-            if bodyGyro then bodyGyro:Destroy() end
-            if humanoid then humanoid.PlatformStand = false end
-        end)
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = state
+        end
     end
 end)
 
 -- 2. WalkSpeed Slider
 CreateSliderBar(2)
 
--- 3. Noclip
+-- 3. Noclip Toggle
 CreateCheckbox("🧱 Noclip (Walk Walls)", 3, false, function(state)
     NoclipState = state
 end)
 
--- 4. Infinite Jump
+-- 4. Infinite Jump Toggle
 CreateCheckbox("🦘 Infinite Jump", 4, false, function(state)
     InfJumpState = state
 end)
 
 -- =========================================================================
--- ENGINE LOOPS & HANDLERS
+-- UNIVERSAL ENGINE LOOPS
 -- =========================================================================
 
--- WalkSpeed Loop
-task.spawn(function()
-    while task.wait(0.1) do
+-- A. WALK SPEED LOOP (Hybrid Humanoid + CFrame Position Boost)
+RunService.Heartbeat:Connect(function(dt)
+    if WalkSpeedEnabled and CurrentWalkSpeed > 16 then
         pcall(function()
             local char = LocalPlayer.Character
-            if char and char:FindFirstChildOfClass("Humanoid") then
+            if char then
                 local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum.WalkSpeed ~= CurrentWalkSpeed and CurrentWalkSpeed > 16 then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                
+                if hum then
                     hum.WalkSpeed = CurrentWalkSpeed
+                end
+                
+                -- Extra movement boost if game locks WalkSpeed
+                if hum and root and hum.MoveDirection.Magnitude > 0 and not FlyState then
+                    local extraSpeed = (CurrentWalkSpeed - 16)
+                    root.CFrame = root.CFrame + (hum.MoveDirection * (extraSpeed * dt))
                 end
             end
         end)
     end
 end)
 
--- Noclip Physics Stepped Connection
+-- B. UNIVERSAL CFRAME FLY LOOP
+RunService.RenderStepped:Connect(function(dt)
+    if FlyState then
+        pcall(function()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+            if root and hum then
+                hum.PlatformStand = true
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+
+                local camCF = Workspace.CurrentCamera.CFrame
+                local moveDir = hum.MoveDirection
+
+                local flyVector = Vector3.zero
+                if moveDir.Magnitude > 0 then
+                    flyVector = (camCF.LookVector * -moveDir.Z + camCF.RightVector * moveDir.X)
+                end
+
+                if flyVector.Magnitude > 0 then
+                    root.CFrame = root.CFrame + (flyVector.Unit * (FlySpeed * dt * 2.5))
+                end
+            end
+        end)
+    end
+end)
+
+-- C. NOCLIP LOOP (Stepped event + State Change)
 RunService.Stepped:Connect(function()
     if NoclipState then
         pcall(function()
             local char = LocalPlayer.Character
             if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.NoPhysics)
+                end
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.CanCollide = false
@@ -389,7 +385,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Infinite Jump Request Handler
+-- D. INFINITE JUMP HANDLER
 UserInputService.JumpRequest:Connect(function()
     if InfJumpState then
         pcall(function()
@@ -404,7 +400,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Toggle UI Display Connections
+-- Toggle UI visibility
 local isHidden = false
 local function ToggleUI()
     isHidden = not isHidden
@@ -415,7 +411,7 @@ end
 ToggleArrow.MouseButton1Click:Connect(ToggleUI)
 MobileButton.MouseButton1Click:Connect(ToggleUI)
 
--- Anti-AFK Handler
+-- Anti-AFK Kick Prevention
 LocalPlayer.Idled:Connect(function()
     pcall(function()
         VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
@@ -424,4 +420,4 @@ LocalPlayer.Idled:Connect(function()
     end)
 end)
 
-print("⚽ Jump To Steal Soccer Hub Ready!")
+print("⚽ Universal Steal Soccer Hub Ready!")
