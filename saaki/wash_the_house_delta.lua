@@ -1,5 +1,5 @@
 -- =========================================================================
--- WASH THE HOUSE (ROBLOX) - DELTA EXECUTOR HUB (TICK UI EDITION)
+-- WASH THE HOUSE (ROBLOX) - DELTA EXECUTOR HUB (REWRITTEN & FIXED)
 -- Features: 1. Auto Clean House | 2. WalkSpeed Slider | 3. Infinite Jump
 -- =========================================================================
 
@@ -126,7 +126,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 12)
 UIListLayout.Parent = ContentFrame
 
--- Helper Function: Checkbox Component (With Green TICK "✓" UI)
+-- Helper Function: Checkbox Component (Green Tick "✓" UI)
 local function CreateCheckbox(name, layoutOrder, defaultChecked, callback)
     local Row = Instance.new("Frame")
     Row.Name = name .. "_Row"
@@ -162,8 +162,8 @@ local function CreateCheckbox(name, layoutOrder, defaultChecked, callback)
 
     local function updateVisual()
         if isChecked then
-            CheckBox.BackgroundColor3 = Color3.fromRGB(0, 170, 90) -- Green when ON
-            CheckBox.Text = "✓" -- TICK symbol instead of cross
+            CheckBox.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Green accent
+            CheckBox.Text = "✓"
             CheckBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         else
             CheckBox.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
@@ -212,7 +212,7 @@ local function CreateSliderBar(layoutOrder)
     ValueDisplay.Position = UDim2.new(0.6, 0, 0, 0)
     ValueDisplay.BackgroundTransparency = 1
     ValueDisplay.Text = "16"
-    ValueDisplay.TextColor3 = Color3.fromRGB(0, 170, 255)
+    ValueDisplay.TextColor3 = Color3.fromRGB(46, 204, 113)
     ValueDisplay.TextSize = 15
     ValueDisplay.Font = Enum.Font.SourceSansBold
     ValueDisplay.TextXAlignment = Enum.TextXAlignment.Right
@@ -233,7 +233,7 @@ local function CreateSliderBar(layoutOrder)
     local Fill = Instance.new("Frame")
     Fill.Name = "Fill"
     Fill.Size = UDim2.new(0, 0, 1, 0)
-    Fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Fill.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
     Fill.BorderSizePixel = 0
     Fill.Parent = Track
 
@@ -298,10 +298,9 @@ local function CreateSliderBar(layoutOrder)
 end
 
 -- =========================================================================
--- INITIALIZING FEATURES
+-- FEATURE 1: AUTO CLEAN HOUSE (MULTI-METHOD ULTIMATE CLEANER)
 -- =========================================================================
 
--- 1. Auto Clean House (POWERFUL UNIVERSAL AUTOMATION)
 CreateCheckbox("Auto Clean House", 1, false, function(state)
     AutoCleanState = state
     if AutoCleanState then
@@ -313,50 +312,61 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                         local humanoid = char:FindFirstChildOfClass("Humanoid")
                         local root = char:FindFirstChild("HumanoidRootPart")
 
-                        -- 1. Equip Washer / Cleaner Tool automatically
+                        -- 1. Equip any washer / mop / vacuum / cleaning tool
                         local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or char:FindFirstChildOfClass("Tool")
                         if tool and tool.Parent ~= char and humanoid then
                             humanoid:EquipTool(tool)
                         end
 
-                        -- 2. Activate equipped tool
+                        -- 2. Constantly activate current tool
                         local currentTool = char:FindFirstChildOfClass("Tool")
                         if currentTool then
                             currentTool:Activate()
                         end
 
-                        -- 3. Fire Remotes if game relies on RemoteEvents for cleaning
-                        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-                            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                        -- 3. Fire all cleaning RemoteEvents & RemoteFunctions in game
+                        for _, v in pairs(game:GetDescendants()) do
+                            if not AutoCleanState then break end
+                            if v:IsA("RemoteEvent") then
                                 local rName = v.Name:lower()
-                                if rName:find("clean") or rName:find("wash") or rName:find("water") or rName:find("use") or rName:find("interact") then
+                                if rName:find("clean") or rName:find("wash") or rName:find("water") or rName:find("use") or rName:find("dirt") or rName:find("stain") or rName:find("spray") then
                                     pcall(function()
-                                        if v:IsA("RemoteEvent") then
-                                            v:FireServer()
-                                        end
+                                        v:FireServer()
+                                        v:FireServer(true)
+                                    end)
+                                end
+                            elseif v:IsA("RemoteFunction") then
+                                local rName = v.Name:lower()
+                                if rName:find("clean") or rName:find("wash") or rName:find("water") or rName:find("use") then
+                                    pcall(function()
+                                        v:InvokeServer()
                                     end)
                                 end
                             end
                         end
 
-                        -- 4. Trigger ProximityPrompts & TouchInterests on dirty objects/trash/stains
+                        -- 4. Scan Workspace for all dirt, trash, stains, objects & trigger them
                         for _, v in pairs(Workspace:GetDescendants()) do
                             if not AutoCleanState then break end
                             
-                            -- ProximityPrompts (Sorting items, picking up dirt/trash)
+                            -- ProximityPrompts (Sorting objects / trash pickup)
                             if v:IsA("ProximityPrompt") and v.Enabled then
                                 fireproximityprompt(v)
                             end
 
-                            -- TouchInterests / BaseParts for Dirt & Stains
+                            -- Parts / MeshParts representing dirt & stains
                             if v:IsA("BasePart") then
                                 local nameLower = v.Name:lower()
-                                if nameLower:find("dirt") or nameLower:find("clean") or nameLower:find("stain") or nameLower:find("grime") or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust") then
+                                if nameLower:find("dirt") or nameLower:find("clean") or nameLower:find("stain") or nameLower:find("grime") or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust") or nameLower:find("wash") or nameLower:find("spot") then
                                     if root then
-                                        -- Fire Touch Event
-                                        if typeof(firetouchinterest) == "function" and v:FindFirstChildOfClass("TouchTransmitter") then
+                                        -- Method A: Touch Interest
+                                        if typeof(firetouchinterest) == "function" then
                                             firetouchinterest(root, v, 0)
                                             firetouchinterest(root, v, 1)
+                                        end
+                                        -- Method B: Teleport dirt part to character to force clean
+                                        if (root.Position - v.Position).Magnitude < 60 then
+                                            v.CFrame = root.CFrame
                                         end
                                     end
                                 end
@@ -364,25 +374,29 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                         end
                     end
                 end)
-                task.wait(0.15)
+                task.wait(0.08)
             end
         end)
     end
 end)
 
--- 2. WalkSpeed Slider Bar
+-- =========================================================================
+-- FEATURE 2: WALKSPEED SLIDER
+-- =========================================================================
 CreateSliderBar(2)
 
--- 3. Infinite Jump
+-- =========================================================================
+-- FEATURE 3: INFINITE JUMP
+-- =========================================================================
 CreateCheckbox("Infinite Jump", 3, false, function(state)
     InfJumpState = state
 end)
 
 -- =========================================================================
--- UNIVERSAL ENGINE LOOPS
+-- ENGINE LOOPS
 -- =========================================================================
 
--- A. WalkSpeed Loop (Hybrid Humanoid + CFrame Boost)
+-- WalkSpeed Engine (Humanoid + CFrame Boost)
 RunService.Heartbeat:Connect(function(dt)
     if WalkSpeedEnabled and CurrentWalkSpeed > 16 then
         pcall(function()
@@ -404,7 +418,7 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- B. Infinite Jump Request Handler
+-- Infinite Jump Engine
 UserInputService.JumpRequest:Connect(function()
     if InfJumpState then
         pcall(function()
@@ -419,7 +433,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Toggle UI Display Connections
+-- UI Visibility Toggle
 local isHidden = false
 local function ToggleUI()
     isHidden = not isHidden
@@ -439,4 +453,4 @@ LocalPlayer.Idled:Connect(function()
     end)
 end)
 
-print("🧼 Wash The House Delta Hub (Tick UI Edition) Loaded Successfully!")
+print("🧼 Wash The House Delta Hub (Ultimate Fixed Version) Loaded!")
