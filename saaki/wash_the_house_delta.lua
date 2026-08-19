@@ -1,17 +1,17 @@
 -- =========================================================================
--- WASH THE HOUSE (ROBLOX) - ERROR-FREE DELTA EXECUTOR HUB
--- Features: Auto Clean House | WalkSpeed Slider Bar | Fly Mode
+-- WASH THE HOUSE (ROBLOX) - DELTA EXECUTOR HUB
+-- Clean 3 Features: 1. Auto Clean House | 2. WalkSpeed Slider | 3. Infinite Jump
 -- =========================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
 
--- Safe CoreGui / PlayerGui Parent
+-- Safe Parent Selection for CoreGui / PlayerGui
 local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
 pcall(function()
     if game:GetService("CoreGui") then
@@ -19,22 +19,49 @@ pcall(function()
     end
 end)
 
--- Cleanup existing instance
-if TargetParent:FindFirstChild("WashTheHouseSampleHub") then
-    TargetParent:FindFirstChild("WashTheHouseSampleHub"):Destroy()
+-- Cleanup existing GUI if re-executed
+if TargetParent:FindFirstChild("WashTheHouseDeltaHub") then
+    TargetParent:FindFirstChild("WashTheHouseDeltaHub"):Destroy()
 end
+
+-- Global States
+local AutoCleanState = false
+local CurrentWalkSpeed = 16
+local WalkSpeedEnabled = false
+local InfJumpState = false
 
 -- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "WashTheHouseSampleHub"
+ScreenGui.Name = "WashTheHouseDeltaHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = TargetParent
 
--- Main Container Frame (Sample UI Style)
+-- Floating Mobile Button
+local MobileButton = Instance.new("TextButton")
+MobileButton.Name = "MobileToggle"
+MobileButton.Size = UDim2.new(0, 45, 0, 45)
+MobileButton.Position = UDim2.new(0, 15, 0.4, 0)
+MobileButton.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+MobileButton.Text = "🧼"
+MobileButton.TextSize = 22
+MobileButton.Active = true
+MobileButton.Draggable = true
+MobileButton.Parent = ScreenGui
+
+local MobileCorner = Instance.new("UICorner")
+MobileCorner.CornerRadius = UDim.new(1, 0)
+MobileCorner.Parent = MobileButton
+
+local MobileStroke = Instance.new("UIStroke")
+MobileStroke.Color = Color3.fromRGB(235, 55, 55)
+MobileStroke.Thickness = 2
+MobileStroke.Parent = MobileButton
+
+-- Main Container Window
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 220, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -110, 0.4, -155)
+MainFrame.Size = UDim2.new(0, 230, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -115, 0.4, -140)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -50,7 +77,7 @@ MainStroke.Color = Color3.fromRGB(45, 45, 55)
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- Header Title Bar
+-- Window Header Bar
 local Header = Instance.new("Frame")
 Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 40)
@@ -67,14 +94,13 @@ TitleLabel.Name = "TitleLabel"
 TitleLabel.Size = UDim2.new(1, -35, 1, 0)
 TitleLabel.Position = UDim2.new(0, 12, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "+WASH THE HOUSE"
+TitleLabel.Text = "🧼 WASH THE HOUSE"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 16
+TitleLabel.TextSize = 15
 TitleLabel.Font = Enum.Font.FredokaOne
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = Header
 
--- Minimize Arrow Button
 local ToggleArrow = Instance.new("TextButton")
 ToggleArrow.Name = "ToggleArrow"
 ToggleArrow.Size = UDim2.new(0, 30, 0, 30)
@@ -86,7 +112,7 @@ ToggleArrow.TextSize = 14
 ToggleArrow.Font = Enum.Font.SourceSansBold
 ToggleArrow.Parent = Header
 
--- Content Layout
+-- Content Layout Frame
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, -20, 1, -55)
@@ -99,12 +125,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 12)
 UIListLayout.Parent = ContentFrame
 
--- States
-local AutoCleanState = false
-local FlyState = false
-local CurrentWalkSpeed = 16
-
--- Helper Function: Red Checkbox
+-- Helper Function: Checkbox Component
 local function CreateCheckbox(name, layoutOrder, defaultChecked, callback)
     local Row = Instance.new("Frame")
     Row.Name = name .. "_Row"
@@ -161,7 +182,7 @@ local function CreateCheckbox(name, layoutOrder, defaultChecked, callback)
     return CheckBox
 end
 
--- Helper Function: WalkSpeed Slider Bar
+-- Helper Function: WalkSpeed Slider Bar Component
 local function CreateSliderBar(layoutOrder)
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Name = "WalkSpeed_Slider"
@@ -233,7 +254,7 @@ local function CreateSliderBar(layoutOrder)
     KnobCorner.Parent = Knob
 
     local minVal = 16
-    local maxVal = 200
+    local maxVal = 150
     local dragging = false
 
     local function updateSlider(input)
@@ -244,7 +265,9 @@ local function CreateSliderBar(layoutOrder)
         Fill.Size = UDim2.new(percentage, 0, 1, 0)
         Knob.Position = UDim2.new(percentage, -9, 0.5, -9)
         ValueDisplay.Text = tostring(val)
+        
         CurrentWalkSpeed = val
+        WalkSpeedEnabled = (val > 16)
     end
 
     Knob.InputBegan:Connect(function(input)
@@ -273,6 +296,10 @@ local function CreateSliderBar(layoutOrder)
     end)
 end
 
+-- =========================================================================
+-- INITIALIZING THE 3 REQUESTED FEATURES
+-- =========================================================================
+
 -- 1. Auto Clean House
 CreateCheckbox("Auto Clean House", 1, false, function(state)
     AutoCleanState = state
@@ -285,6 +312,7 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                         local humanoid = char:FindFirstChildOfClass("Humanoid")
                         local root = char:FindFirstChildOfClass("HumanoidRootPart")
 
+                        -- Equip & Activate Washer Tool
                         local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or char:FindFirstChildOfClass("Tool")
                         if tool and tool.Parent ~= char and humanoid then
                             humanoid:EquipTool(tool)
@@ -295,12 +323,13 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                             currentTool:Activate()
                         end
 
+                        -- Touch & Clean nearby dirt/stains
                         for _, v in pairs(Workspace:GetDescendants()) do
                             if not AutoCleanState then break end
                             if v:IsA("BasePart") then
                                 local nameLower = v.Name:lower()
                                 if nameLower:find("dirt") or nameLower:find("clean") or nameLower:find("stain") or nameLower:find("grime") or nameLower:find("mess") then
-                                    if root and (root.Position - v.Position).Magnitude < 35 then
+                                    if root and (root.Position - v.Position).Magnitude < 40 then
                                         if typeof(firetouchinterest) == "function" then
                                             firetouchinterest(root, v, 0)
                                             firetouchinterest(root, v, 1)
@@ -320,127 +349,70 @@ end)
 -- 2. WalkSpeed Slider Bar
 CreateSliderBar(2)
 
-task.spawn(function()
-    while task.wait(0.1) do
+-- 3. Infinite Jump
+CreateCheckbox("Infinite Jump", 3, false, function(state)
+    InfJumpState = state
+end)
+
+-- =========================================================================
+-- UNIVERSAL ENGINE LOOPS
+-- =========================================================================
+
+-- A. WalkSpeed Loop (Hybrid Humanoid + CFrame Boost)
+RunService.Heartbeat:Connect(function(dt)
+    if WalkSpeedEnabled and CurrentWalkSpeed > 16 then
         pcall(function()
             local char = LocalPlayer.Character
-            if char and char:FindFirstChildOfClass("Humanoid") then
-                char:FindFirstChildOfClass("Humanoid").WalkSpeed = CurrentWalkSpeed
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local root = char:FindFirstChild("HumanoidRootPart")
+                
+                if hum then
+                    hum.WalkSpeed = CurrentWalkSpeed
+                end
+                
+                if hum and root and hum.MoveDirection.Magnitude > 0 then
+                    local extraSpeed = (CurrentWalkSpeed - 16)
+                    root.CFrame = root.CFrame + (hum.MoveDirection * (extraSpeed * dt))
+                end
             end
         end)
     end
 end)
 
--- 3. Fly Mode
-local bodyVel, bodyGyro
-
-CreateCheckbox("Fly Mode", 3, false, function(state)
-    FlyState = state
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:FindFirstChildOfClass("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-    if FlyState then
-        if not root then return end
-        
+-- B. Infinite Jump Request Handler
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpState then
         pcall(function()
-            bodyVel = Instance.new("BodyVelocity")
-            bodyVel.Velocity = Vector3.zero
-            bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bodyVel.Parent = root
-
-            bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.CFrame = root.CFrame
-            bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-            bodyGyro.P = 9e4
-            bodyGyro.Parent = root
-        end)
-
-        task.spawn(function()
-            while FlyState do
-                pcall(function()
-                    if humanoid then humanoid.PlatformStand = true end
-                    local moveDir = humanoid and humanoid.MoveDirection or Vector3.zero
-                    local camCF = Workspace.CurrentCamera.CFrame
-
-                    local velocity = Vector3.zero
-                    if moveDir.Magnitude > 0 then
-                        velocity = (camCF.LookVector * -moveDir.Z + camCF.RightVector * moveDir.X).Unit * 50
-                    end
-
-                    if bodyVel then bodyVel.Velocity = velocity end
-                    if bodyGyro then bodyGyro.CFrame = camCF end
-                end)
-                task.wait()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
             end
-
-            pcall(function()
-                if bodyVel then bodyVel:Destroy() end
-                if bodyGyro then bodyGyro:Destroy() end
-                if humanoid then humanoid.PlatformStand = false end
-            end)
-        end)
-    else
-        pcall(function()
-            if bodyVel then bodyVel:Destroy() end
-            if bodyGyro then bodyGyro:Destroy() end
-            if humanoid then humanoid.PlatformStand = false end
         end)
     end
 end)
 
--- Footer Attribution
-local Footer = Instance.new("TextLabel")
-Footer.Name = "Footer"
-Footer.Size = UDim2.new(1, 0, 0, 20)
-Footer.Position = UDim2.new(0, 0, 1, -22)
-Footer.BackgroundTransparency = 1
-Footer.Text = "Delta Hub | Wash The House"
-Footer.TextColor3 = Color3.fromRGB(150, 150, 160)
-Footer.TextSize = 13
-Footer.Font = Enum.Font.SourceSansBold
-Footer.TextXAlignment = Enum.TextXAlignment.Center
-Footer.Parent = MainFrame
+-- Toggle UI Display Connections
+local isHidden = false
+local function ToggleUI()
+    isHidden = not isHidden
+    MainFrame.Visible = not isHidden
+    ToggleArrow.Text = isHidden and "^" or "V"
+end
 
--- Minimize Toggle
-local isMinimized = false
-ToggleArrow.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    ContentFrame.Visible = not isMinimized
-    Footer.Visible = not isMinimized
-    if isMinimized then
-        MainFrame.Size = UDim2.new(0, 220, 0, 40)
-        ToggleArrow.Text = "^"
-    else
-        MainFrame.Size = UDim2.new(0, 220, 0, 310)
-        ToggleArrow.Text = "V"
-    end
+ToggleArrow.MouseButton1Click:Connect(ToggleUI)
+MobileButton.MouseButton1Click:Connect(ToggleUI)
+
+-- Anti-AFK Handler
+LocalPlayer.Idled:Connect(function()
+    pcall(function()
+        VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    end)
 end)
 
--- Floating Mobile Button
-local OpenBtn = Instance.new("TextButton")
-OpenBtn.Name = "OpenBtn"
-OpenBtn.Size = UDim2.new(0, 50, 0, 50)
-OpenBtn.Position = UDim2.new(0, 15, 0.5, -25)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-OpenBtn.BorderSizePixel = 0
-OpenBtn.Text = "WTH"
-OpenBtn.TextColor3 = Color3.fromRGB(235, 55, 55)
-OpenBtn.TextSize = 14
-OpenBtn.Font = Enum.Font.FredokaOne
-OpenBtn.Draggable = true
-OpenBtn.Active = true
-OpenBtn.Parent = ScreenGui
-
-local OpenCorner = Instance.new("UICorner")
-OpenCorner.CornerRadius = UDim.new(1, 0)
-OpenCorner.Parent = OpenBtn
-
-local OpenStroke = Instance.new("UIStroke")
-OpenStroke.Color = Color3.fromRGB(235, 55, 55)
-OpenStroke.Thickness = 2
-OpenStroke.Parent = OpenBtn
-
-OpenBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
+print("🧼 Wash The House Delta Hub Loaded Successfully!")
