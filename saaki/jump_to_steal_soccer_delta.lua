@@ -1,14 +1,12 @@
 -- =========================================================================
 -- ⚽ JUMP TO STEAL SOCCER PLAYERS (ROBLOX) - DELTA EXECUTOR HUB ⚽
--- Features: Auto Steal Blocks | Auto Open | Auto Collect Cash | Auto Upgrades 
---           Guard Bypass | Block ESP | Infinite Jump | Speed Slider
+-- Clean Version: Fly Mode | WalkSpeed Slider | Noclip | Infinite Jump
 -- =========================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
@@ -29,17 +27,11 @@ end
 
 -- Feature State Flags
 local States = {
-    AutoSteal = false,
-    AutoOpen = false,
-    AutoCash = false,
-    AutoUpgrade = false,
-    AutoRebirth = false,
-    BypassGuards = false,
-    BlockESP = false,
-    InfJump = false,
-    Noclip = false,
+    Fly = false,
+    FlySpeed = 50,
     WalkSpeed = 16,
-    JumpPower = 50
+    Noclip = false,
+    InfJump = false
 }
 
 -- ScreenGui Setup
@@ -73,8 +65,8 @@ MobileStroke.Parent = MobileButton
 -- Main Container Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 250, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -125, 0.35, -190)
+MainFrame.Size = UDim2.new(0, 240, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -120, 0.4, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -134,7 +126,7 @@ ContentScroll.Position = UDim2.new(0, 8, 0, 46)
 ContentScroll.BackgroundTransparency = 1
 ContentScroll.ScrollBarThickness = 4
 ContentScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
-ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 520)
+ContentScroll.CanvasSize = UDim2.new(0, 0, 0, 240)
 ContentScroll.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -174,53 +166,37 @@ local function CreateToggle(name, labelText, defaultState, callback)
     return Button
 end
 
--- 1. Auto Steal Blocks Toggle
-CreateToggle("AutoSteal", "📦 Auto Steal Blocks", false, function(state) end)
+-- 1. Fly Mode Toggle
+local bodyGyro, bodyVel
+CreateToggle("Fly", "🕊️ Fly Mode", false, function(state)
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
--- 2. Auto Open / Hatch Blocks Toggle
-CreateToggle("AutoOpen", "🔓 Auto Open Blocks (Base)", false, function(state) end)
-
--- 3. Auto Collect Cash Toggle
-CreateToggle("AutoCash", "💰 Auto Collect Cash", false, function(state) end)
-
--- 4. Auto Upgrade Stats Toggle
-CreateToggle("AutoUpgrade", "⬆️ Auto Upgrade (Jump/Carry)", false, function(state) end)
-
--- 5. Bypass / Disable Guards Toggle
-CreateToggle("BypassGuards", "🛡️ Bypass / Freeze Guards", false, function(state)
     if state then
-        pcall(function()
-            for _, v in pairs(Workspace:GetDescendants()) do
-                if v:IsA("Model") and (v.Name:lower():find("guard") or v.Name:lower():find("soccer")) then
-                    for _, part in pairs(v:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.CanTouch = false
-                        end
-                    end
-                end
-            end
-        end)
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.P = 9e4
+        bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyGyro.cframe = root.CFrame
+        bodyGyro.Parent = root
+
+        bodyVel = Instance.new("BodyVelocity")
+        bodyVel.velocity = Vector3.new(0, 0, 0)
+        bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVel.Parent = root
+
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = true end
+    else
+        if bodyGyro then bodyGyro:Destroy() end
+        if bodyVel then bodyVel:Destroy() end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
     end
 end)
 
--- 6. Block ESP Toggle
-local ESPFolder = Instance.new("Folder")
-ESPFolder.Name = "BlockESPFolder"
-ESPFolder.Parent = ScreenGui
-
-CreateToggle("BlockESP", "👁️ Block ESP (Highlight)", false, function(state)
-    if not state then
-        ESPFolder:ClearAllChildren()
-    end
-end)
-
--- 7. Infinite Jump Toggle
-CreateToggle("InfJump", "🦘 Infinite Jump", false, function(state) end)
-
--- 8. Noclip Toggle
-CreateToggle("Noclip", "🧱 Noclip (Walk Through Walls)", false, function(state) end)
-
--- 9. WalkSpeed Slider Bar
+-- 2. WalkSpeed Slider Bar
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Name = "SpeedFrame"
 SpeedFrame.Size = UDim2.new(1, -4, 0, 48)
@@ -300,6 +276,12 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
+-- 3. Noclip Toggle
+CreateToggle("Noclip", "🧱 Noclip (Walk Through Walls)", false, function(state) end)
+
+-- 4. Infinite Jump Toggle
+CreateToggle("InfJump", "🦘 Infinite Jump", false, function(state) end)
+
 -- Minimize / Mobile UI Toggle Connections
 local isMinimized = false
 local function ToggleUIVisibility()
@@ -312,30 +294,43 @@ ToggleArrow.MouseButton1Click:Connect(ToggleUIVisibility)
 MobileButton.MouseButton1Click:Connect(ToggleUIVisibility)
 
 -- =========================================================================
--- BACKGROUND AUTOMATION LOOPS
+-- RENDERSTEPPED / LOOP MECHANICS
 -- =========================================================================
 
--- 1. Character & Speed/Noclip Loop
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            if States.WalkSpeed > 16 then
-                hum.WalkSpeed = States.WalkSpeed
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+
+    -- WalkSpeed Enforcement
+    if hum and States.WalkSpeed > 16 then
+        hum.WalkSpeed = States.WalkSpeed
+    end
+
+    -- Noclip Loop
+    if States.Noclip then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
         end
-        if States.Noclip then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
+    end
+
+    -- Fly Loop
+    if States.Fly and root and bodyGyro and bodyVel then
+        bodyGyro.cframe = Camera.CFrame
+        local moveDir = hum and hum.MoveDirection or Vector3.new(0, 0, 0)
+        
+        if moveDir.Magnitude > 0 then
+            bodyVel.velocity = Camera.CFrame:VectorToWorldSpace(Camera.CFrame:VectorToObjectSpace(moveDir * States.FlySpeed))
+        else
+            bodyVel.velocity = Vector3.new(0, 0, 0)
         end
     end
 end)
 
--- 2. Infinite Jump Handler
+-- Infinite Jump Request
 UserInputService.JumpRequest:Connect(function()
     if States.InfJump then
         local char = LocalPlayer.Character
@@ -348,130 +343,11 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3. Helper: Get Player Base / Plot
-local function GetPlayerBase()
-    local plots = Workspace:FindFirstChild("Plots") or Workspace:FindFirstChild("Bases") or Workspace:FindFirstChild("Towers")
-    if plots then
-        for _, plot in pairs(plots:GetChildren()) do
-            local owner = plot:FindFirstChild("Owner") or plot:FindFirstChild("Player")
-            if owner and (owner.Value == LocalPlayer or owner.Value == LocalPlayer.Name) then
-                return plot
-            end
-        end
-    end
-    return nil
-end
-
--- 4. Main Auto-Farm Loop (Every 0.5s)
-task.spawn(function()
-    while task.wait(0.5) do
-        pcall(function()
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            
-            -- AUTO STEAL BLOCKS
-            if States.AutoSteal and root then
-                local blocksFolder = Workspace:FindFirstChild("Blocks") or Workspace:FindFirstChild("LuckyBlocks") or Workspace:FindFirstChild("Tower")
-                if blocksFolder then
-                    for _, block in pairs(blocksFolder:GetDescendants()) do
-                        if block:IsA("BasePart") or block:IsA("Model") then
-                            local prompt = block:FindFirstChildOfClass("ProximityPrompt")
-                            local touch = block:FindFirstChildOfClass("TouchTransmitter") or block:FindFirstChild("TouchInterest")
-                            
-                            if prompt and prompt.Enabled then
-                                root.CFrame = (block:IsA("Model") and block:GetPivot() or block.CFrame) + Vector3.new(0, 3, 0)
-                                task.wait(0.2)
-                                fireproximityprompt(prompt)
-                                break
-                            elseif touch then
-                                root.CFrame = (block:IsA("Model") and block:GetPivot() or block.CFrame)
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-            
-            -- AUTO OPEN BLOCKS AT BASE
-            if States.AutoOpen then
-                local base = GetPlayerBase()
-                if base then
-                    for _, prompt in pairs(base:GetDescendants()) do
-                        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                            fireproximityprompt(prompt)
-                        end
-                    end
-                end
-            end
-
-            -- AUTO COLLECT CASH
-            if States.AutoCash then
-                local base = GetPlayerBase() or Workspace
-                for _, part in pairs(base:GetDescendants()) do
-                    if part:IsA("BasePart") and (part.Name:lower():find("cash") or part.Name:lower():find("coin") or part.Name:lower():find("collector")) then
-                        if root and part:FindFirstChildOfClass("TouchTransmitter") then
-                            firetouchinterest(root, part, 0)
-                            firetouchinterest(root, part, 1)
-                        end
-                    end
-                end
-            end
-            
-            -- AUTO UPGRADES
-            if States.AutoUpgrade then
-                local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("Events")
-                if remotes then
-                    for _, remote in pairs(remotes:GetChildren()) do
-                        if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-                            if remote.Name:lower():find("upgrade") or remote.Name:lower():find("jump") or remote.Name:lower():find("carry") then
-                                pcall(function()
-                                    if remote:IsA("RemoteEvent") then
-                                        remote:FireServer()
-                                    end
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-            
-            -- BLOCK ESP LOOP
-            if States.BlockESP then
-                ESPFolder:ClearAllChildren()
-                local blocksFolder = Workspace:FindFirstChild("Blocks") or Workspace:FindFirstChild("LuckyBlocks")
-                if blocksFolder then
-                    for _, block in pairs(blocksFolder:GetChildren()) do
-                        local part = block:IsA("Model") and block.PrimaryPart or (block:IsA("BasePart") and block)
-                        if part then
-                            local bgui = Instance.new("BillboardGui")
-                            bgui.Name = "ESP"
-                            bgui.Adornee = part
-                            bgui.Size = UDim2.new(0, 100, 0, 30)
-                            bgui.AlwaysOnTop = true
-                            bgui.Parent = ESPFolder
-                            
-                            local label = Instance.new("TextLabel")
-                            label.Size = UDim2.new(1, 0, 1, 0)
-                            label.BackgroundTransparency = 1
-                            label.Text = "📦 " .. block.Name
-                            label.TextColor3 = Color3.fromRGB(0, 255, 150)
-                            label.TextSize = 12
-                            label.Font = Enum.Font.SourceSansBold
-                            label.Parent = bgui
-                        end
-                    end
-                end
-            end
-
-        end)
-    end
-end)
-
--- 5. Anti-AFK Handler (20 Mins Kick Prevention)
+-- Anti-AFK Kick Prevention
 LocalPlayer.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
     task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
 end)
 
-print("⚽ Jump To Steal Soccer Players Delta Hub Loaded Successfully!")
+print("⚽ Jump To Steal Soccer Hub (4 Features Clean Edition) Loaded!")
