@@ -1,5 +1,5 @@
 -- =========================================================================
--- WASH THE HOUSE (ROBLOX) - DELTA EXECUTOR HUB (HYBRID AUTO-CLEAN)
+-- WASH THE HOUSE (ROBLOX) - DELTA EXECUTOR HUB (TELEPORT AUTO-CLEAN)
 -- Features: 1. Auto Clean House | 2. WalkSpeed Slider | 3. Infinite Jump
 -- =========================================================================
 
@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
 -- Safe Parent Selection for CoreGui / PlayerGui
 local TargetParent = LocalPlayer:WaitForChild("PlayerGui")
@@ -224,7 +225,7 @@ local function CreateSliderBar(layoutOrder)
     Track.Position = UDim2.new(0, 0, 0, 26)
     Track.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
     Track.BorderSizePixel = 0
-    Track.Parent = TrackFrame or SliderFrame
+    Track.Parent = SliderFrame
 
     local TrackCorner = Instance.new("UICorner")
     TrackCorner.CornerRadius = UDim.new(0, 7)
@@ -298,7 +299,7 @@ local function CreateSliderBar(layoutOrder)
 end
 
 -- =========================================================================
--- FEATURE 1: AUTO CLEAN HOUSE (SUPERPOWERED ALL-IN-ONE AUTOMATION)
+-- FEATURE 1: AUTO CLEAN HOUSE (TARGETED TELEPORT & WASHER AIM ENGINE)
 -- =========================================================================
 
 CreateCheckbox("Auto Clean House", 1, false, function(state)
@@ -308,85 +309,80 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
             while AutoCleanState do
                 pcall(function()
                     local char = LocalPlayer.Character
-                    if char then
-                        local humanoid = char:FindFirstChildOfClass("Humanoid")
-                        local root = char:FindFirstChild("HumanoidRootPart")
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-                        -- 1. Auto Equip Washer / Tool
+                    if char and root and hum then
+                        -- 1. Equip Cleaning / Washer Tool
                         local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or char:FindFirstChildOfClass("Tool")
-                        if tool and tool.Parent ~= char and humanoid then
-                            humanoid:EquipTool(tool)
+                        if tool and tool.Parent ~= char then
+                            hum:EquipTool(tool)
                         end
 
-                        -- 2. Auto Click / Activate Tool & Fire internal tool remotes
                         local currentTool = char:FindFirstChildOfClass("Tool")
                         if currentTool then
                             currentTool:Activate()
-                            for _, child in pairs(currentTool:GetDescendants()) do
-                                if child:IsA("RemoteEvent") then
-                                    pcall(function() child:FireServer() end)
-                                end
-                            end
                         end
 
-                        -- 3. Fire all game-wide Remotes related to cleaning/washing
+                        -- 2. Fire Remotes in ReplicatedStorage / Tool
                         for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-                            if not AutoCleanState then break end
                             if v:IsA("RemoteEvent") then
                                 local rName = v.Name:lower()
-                                if rName:find("clean") or rName:find("wash") or rName:find("water") or rName:find("spray") or rName:find("use") or rName:find("dirt") then
+                                if rName:find("clean") or rName:find("wash") or rName:find("spray") or rName:find("water") or rName:find("dirt") then
                                     pcall(function() v:FireServer() end)
                                 end
                             end
                         end
 
-                        -- 4. Bring all dirty parts & trash directly to washer stream & fire interactions
+                        -- 3. Teleport facing each dirty object and aim tool
+                        local foundDirty = false
                         for _, v in pairs(Workspace:GetDescendants()) do
                             if not AutoCleanState then break end
 
-                            -- ProximityPrompts (Sorting objects / picking up dirt)
+                            -- ProximityPrompts (picking up items/sorting/cleaning prompts)
                             if v:IsA("ProximityPrompt") and v.Enabled then
                                 fireproximityprompt(v)
                             end
 
-                            -- BaseParts, Decals, & Textures representing dirt
-                            if v:IsA("BasePart") or v:IsA("Decal") or v:IsA("Texture") then
+                            -- BaseParts & Models representing dirt / stains / trash
+                            if v:IsA("BasePart") or v:IsA("Model") then
                                 local nameLower = v.Name:lower()
                                 local parentName = (v.Parent and v.Parent.Name:lower()) or ""
-
-                                local isDirty = nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime") or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust") or nameLower:find("spot") or nameLower:find("mud") or nameLower:find("clean") or parentName:find("dirt") or parentName:find("stain")
-
+                                
+                                local isDirty = nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime") or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust") or nameLower:find("clean") or nameLower:find("wash") or parentName:find("dirt") or parentName:find("stain") or parentName:find("clean")
+                                
                                 if isDirty then
-                                    if v:IsA("BasePart") and root then
-                                        -- Fire Touch Event if TouchTransmitter exists
-                                        if typeof(firetouchinterest) == "function" and v:FindFirstChildOfClass("TouchTransmitter") then
+                                    local targetPos = v:IsA("Model") and v:GetPivot().Position or v.Position
+                                    if targetPos then
+                                        foundDirty = true
+                                        
+                                        -- Teleport character 2.5 units in front of dirt, facing it directly
+                                        root.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 1, 2.5), targetPos)
+                                        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+                                        
+                                        if currentTool then
+                                            currentTool:Activate()
+                                        end
+
+                                        -- Fire Touch Event if touch transmitter exists
+                                        if v:IsA("BasePart") and typeof(firetouchinterest) == "function" then
                                             firetouchinterest(root, v, 0)
                                             firetouchinterest(root, v, 1)
                                         end
-
-                                        -- Snap dirt right in front of character's washer stream
-                                        pcall(function()
-                                            v.CFrame = root.CFrame + (root.CFrame.LookVector * 2)
-                                            v.CanCollide = false
-                                        end)
-
-                                        -- Set dirt attributes to 0/Clean if game tracks them
-                                        pcall(function()
-                                            v:SetAttribute("Cleaned", true)
-                                            v:SetAttribute("Dirt", 0)
-                                            v:SetAttribute("Cleanliness", 100)
-                                        end)
-                                    elseif v:IsA("Decal") or v:IsA("Texture") then
-                                        pcall(function()
-                                            v.Transparency = 1
-                                        end)
+                                        
+                                        task.wait(0.04)
                                     end
                                 end
                             end
                         end
+
+                        -- Fallback: If no named dirt parts found, sweep room positions
+                        if not foundDirty then
+                            if currentTool then currentTool:Activate() end
+                        end
                     end
                 end)
-                task.wait(0.05)
+                task.wait(0.1)
             end
         end)
     end
@@ -465,4 +461,4 @@ LocalPlayer.Idled:Connect(function()
     end)
 end)
 
-print("🧼 Wash The House Delta Hub (Hybrid Auto-Clean) Loaded!")
+print("🧼 Wash The House Delta Hub (Targeted Teleport Auto-Clean) Loaded!")
