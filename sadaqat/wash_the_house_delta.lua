@@ -299,7 +299,7 @@ local function CreateSliderBar(layoutOrder)
 end
 
 -- =========================================================================
--- FEATURE 1: AUTO CLEAN HOUSE (TARGETED TELEPORT & WASHER AIM ENGINE)
+-- FEATURE 1: AUTO CLEAN HOUSE (SUPERCHARGED 4-IN-1 CLEAN ENGINE)
 -- =========================================================================
 
 CreateCheckbox("Auto Clean House", 1, false, function(state)
@@ -313,7 +313,7 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
 
                     if char and root and hum then
-                        -- 1. Equip Cleaning / Washer Tool
+                        -- 1. Auto Equip Washer / Cleaning Tool
                         local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or char:FindFirstChildOfClass("Tool")
                         if tool and tool.Parent ~= char then
                             hum:EquipTool(tool)
@@ -322,24 +322,29 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                         local currentTool = char:FindFirstChildOfClass("Tool")
                         if currentTool then
                             currentTool:Activate()
+                            pcall(function()
+                                VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                            end)
                             for _, child in pairs(currentTool:GetChildren()) do
                                 if child:IsA("RemoteEvent") then
                                     pcall(function() child:FireServer() end)
+                                elseif child:IsA("RemoteFunction") then
+                                    pcall(function() child:InvokeServer() end)
                                 end
                             end
                         end
 
-                        -- 2. Fire Cleaning Remotes in ReplicatedStorage
+                        -- 2. Fire Cleaning Remotes in ReplicatedStorage / Workspace
                         for _, v in pairs(ReplicatedStorage:GetDescendants()) do
                             if v:IsA("RemoteEvent") then
                                 local rName = v.Name:lower()
-                                if rName:find("clean") or rName:find("wash") or rName:find("spray") or rName:find("water") or rName:find("dirt") then
+                                if rName:find("clean") or rName:find("wash") or rName:find("spray") or rName:find("water") or rName:find("dirt") or rName:find("hit") or rName:find("use") then
                                     pcall(function() v:FireServer() end)
                                 end
                             end
                         end
 
-                        -- Helper to ignore GUI & Player Characters
+                        -- Helper to ignore GUI, CoreGui, and Player Characters
                         local function isIgnored(obj)
                             if not obj then return true end
                             if obj:IsDescendantOf(TargetParent) or obj:IsDescendantOf(ScreenGui) then return true end
@@ -351,76 +356,91 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                             return false
                         end
 
-                        -- 3. Teleport to dirty objects & interact
+                        -- 3. Target Dirt, Prompts & Cleanables
                         local foundDirty = false
-                        for _, v in pairs(Workspace:GetDescendants()) do
+                        local descendants = Workspace:GetDescendants()
+                        
+                        for _, v in pairs(descendants) do
                             if not AutoCleanState then break end
 
                             if not isIgnored(v) then
-                                -- ProximityPrompts (picking up items/sorting/cleaning prompts)
+                                -- Trigger ProximityPrompts
                                 if v:IsA("ProximityPrompt") and v.Enabled then
                                     if typeof(fireproximityprompt) == "function" then
                                         if v.Parent and v.Parent:IsA("BasePart") then
-                                            root.CFrame = CFrame.lookAt(v.Parent.Position + Vector3.new(0, 1, 2), v.Parent.Position)
+                                            root.CFrame = CFrame.lookAt(v.Parent.Position + Vector3.new(0, 1, 1.5), v.Parent.Position)
                                         end
                                         fireproximityprompt(v)
                                         task.wait(0.02)
                                     end
                                 end
 
-                                -- ClickDetectors
+                                -- Trigger ClickDetectors
                                 if v:IsA("ClickDetector") then
                                     if typeof(fireclickdetector) == "function" then
                                         fireclickdetector(v)
                                     end
                                 end
 
-                                -- BaseParts & Models representing dirt / stains / trash
+                                -- Check BaseParts & Models for Dirt / Stains / Mess
                                 if v:IsA("BasePart") or v:IsA("Model") then
                                     local nameLower = v.Name:lower()
                                     local parentName = (v.Parent and v.Parent.Name:lower()) or ""
                                     
-                                    local isDirty = nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime")
+                                    local isNamedDirt = nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime")
                                         or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust")
                                         or nameLower:find("rubbish") or nameLower:find("spot") or nameLower:find("soot")
                                         or nameLower:find("cleanable") or nameLower:find("dirty") or nameLower:find("mud")
                                         or nameLower:find("puddle") or nameLower:find("gunk") or nameLower:find("garbage")
+                                        or nameLower:find("glass") or nameLower:find("window") or nameLower:find("tile")
                                         or parentName:find("dirt") or parentName:find("stain") or parentName:find("cleanable")
-                                        or parentName:find("trash") or parentName:find("mess")
+                                        or parentName:find("trash") or parentName:find("mess") or parentName:find("house")
+                                        or parentName:find("clean")
                                     
-                                    if isDirty then
+                                    local isTargetablePart = v:IsA("BasePart") and v.Transparency < 0.99 and not v.Locked
+                                    local hasDirtChild = v:FindFirstChildWhichIsA("Decal") or v:FindFirstChildWhichIsA("Texture") or v:FindFirstChildWhichIsA("SurfaceAppearance")
+                                    
+                                    if (isNamedDirt or hasDirtChild) and (v:IsA("BasePart") or v:FindFirstChildOfClass("BasePart")) then
                                         local targetPart = v:IsA("BasePart") and v or v:FindFirstChildOfClass("BasePart")
-                                        if targetPart and targetPart.Parent and targetPart:IsDescendantOf(Workspace) then
+                                        if targetPart and targetPart.Parent and targetPart:IsDescendantOf(Workspace) and targetPart.Transparency < 0.99 then
                                             foundDirty = true
                                             local targetPos = targetPart.Position
                                             
-                                            -- Teleport character 2 studs in front of target, facing it directly
-                                            root.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 1, 2), targetPos)
+                                            -- Fast Teleport 1.8 studs facing target
+                                            root.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0.8, 1.8), targetPos)
                                             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
                                             
                                             if currentTool then
                                                 currentTool:Activate()
+                                                local toolHandle = currentTool:FindFirstChild("Handle") or currentTool:FindFirstChildOfClass("BasePart")
+                                                if toolHandle and typeof(firetouchinterest) == "function" then
+                                                    firetouchinterest(toolHandle, targetPart, 0)
+                                                    firetouchinterest(toolHandle, targetPart, 1)
+                                                end
                                             end
 
-                                            -- Fire Touch Event if touch transmitter exists
+                                            -- Character Touch Interest
                                             if typeof(firetouchinterest) == "function" then
                                                 firetouchinterest(root, targetPart, 0)
                                                 firetouchinterest(root, targetPart, 1)
                                             end
                                             
-                                            task.wait(0.04)
+                                            task.wait(0.03)
                                         end
                                     end
                                 end
                             end
                         end
 
+                        -- Fallback Sweep if no specific dirt parts remain
                         if not foundDirty then
-                            if currentTool then currentTool:Activate() end
+                            if currentTool then
+                                currentTool:Activate()
+                            end
                         end
                     end
                 end)
-                task.wait(0.1)
+                task.wait(0.08)
             end
         end)
     end
