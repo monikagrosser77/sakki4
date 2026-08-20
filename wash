@@ -299,8 +299,12 @@ local function CreateSliderBar(layoutOrder)
 end
 
 -- =========================================================================
--- FEATURE 1: AUTO CLEAN HOUSE (SUPERCHARGED 4-IN-1 CLEAN ENGINE)
+-- FEATURE 1: AUTO CLEAN HOUSE (WALL & SURFACE COLOR CLEANING ENGINE)
 -- =========================================================================
+
+local function isWhiteColor(color)
+    return color.R > 0.93 and color.G > 0.93 and color.B > 0.93
+end
 
 CreateCheckbox("Auto Clean House", 1, false, function(state)
     AutoCleanState = state
@@ -313,7 +317,12 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
 
                     if char and root and hum then
-                        -- 1. Auto Equip Washer / Cleaning Tool
+                        -- Noclip character while auto-cleaning to prevent wall collision bugs
+                        for _, p in pairs(char:GetDescendants()) do
+                            if p:IsA("BasePart") then p.CanCollide = false end
+                        end
+
+                        -- 1. Auto Equip Washer / Spray Tool
                         local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool") or char:FindFirstChildOfClass("Tool")
                         if tool and tool.Parent ~= char then
                             hum:EquipTool(tool)
@@ -338,7 +347,7 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                         for _, v in pairs(ReplicatedStorage:GetDescendants()) do
                             if v:IsA("RemoteEvent") then
                                 local rName = v.Name:lower()
-                                if rName:find("clean") or rName:find("wash") or rName:find("spray") or rName:find("water") or rName:find("dirt") or rName:find("hit") or rName:find("use") then
+                                if rName:find("clean") or rName:find("wash") or rName:find("spray") or rName:find("water") or rName:find("dirt") or rName:find("hit") or rName:find("use") or rName:find("wall") then
                                     pcall(function() v:FireServer() end)
                                 end
                             end
@@ -356,7 +365,7 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                             return false
                         end
 
-                        -- 3. Target Dirt, Prompts & Cleanables
+                        -- 3. Scan & Target Dirty Walls / Surfaces (Non-white or Decal/Texture)
                         local foundDirty = false
                         local descendants = Workspace:GetDescendants()
                         
@@ -382,57 +391,48 @@ CreateCheckbox("Auto Clean House", 1, false, function(state)
                                     end
                                 end
 
-                                -- Check BaseParts & Models for Dirt / Stains / Mess
-                                if v:IsA("BasePart") or v:IsA("Model") then
+                                -- Check BaseParts (Walls / Floors / Roofs / Windows / Stains)
+                                if v:IsA("BasePart") and v.Transparency < 0.99 and not v.Name:lower():find("baseplate") and not v.Name:lower():find("spawn") then
                                     local nameLower = v.Name:lower()
                                     local parentName = (v.Parent and v.Parent.Name:lower()) or ""
                                     
-                                    local isNamedDirt = nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime")
-                                        or nameLower:find("mess") or nameLower:find("trash") or nameLower:find("dust")
-                                        or nameLower:find("rubbish") or nameLower:find("spot") or nameLower:find("soot")
-                                        or nameLower:find("cleanable") or nameLower:find("dirty") or nameLower:find("mud")
-                                        or nameLower:find("puddle") or nameLower:find("gunk") or nameLower:find("garbage")
-                                        or nameLower:find("glass") or nameLower:find("window") or nameLower:find("tile")
-                                        or parentName:find("dirt") or parentName:find("stain") or parentName:find("cleanable")
-                                        or parentName:find("trash") or parentName:find("mess") or parentName:find("house")
-                                        or parentName:find("clean")
+                                    -- Check if wall/surface is dirty (Not White OR Has Decal/Texture/Dirt)
+                                    local isDirtyWall = not isWhiteColor(v.Color)
+                                    local hasDecal = v:FindFirstChildWhichIsA("Decal") or v:FindFirstChildWhichIsA("Texture") or v:FindFirstChildWhichIsA("SurfaceAppearance")
+                                    local isNamedDirt = nameLower:find("wall") or nameLower:find("dirt") or nameLower:find("stain") or nameLower:find("grime")
+                                        or nameLower:find("house") or nameLower:find("part") or nameLower:find("clean") or nameLower:find("surface")
+                                        or parentName:find("house") or parentName:find("wall") or parentName:find("clean") or parentName:find("map")
                                     
-                                    local isTargetablePart = v:IsA("BasePart") and v.Transparency < 0.99 and not v.Locked
-                                    local hasDirtChild = v:FindFirstChildWhichIsA("Decal") or v:FindFirstChildWhichIsA("Texture") or v:FindFirstChildWhichIsA("SurfaceAppearance")
-                                    
-                                    if (isNamedDirt or hasDirtChild) and (v:IsA("BasePart") or v:FindFirstChildOfClass("BasePart")) then
-                                        local targetPart = v:IsA("BasePart") and v or v:FindFirstChildOfClass("BasePart")
-                                        if targetPart and targetPart.Parent and targetPart:IsDescendantOf(Workspace) and targetPart.Transparency < 0.99 then
-                                            foundDirty = true
-                                            local targetPos = targetPart.Position
-                                            
-                                            -- Fast Teleport 1.8 studs facing target
-                                            root.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0.8, 1.8), targetPos)
-                                            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
-                                            
-                                            if currentTool then
-                                                currentTool:Activate()
-                                                local toolHandle = currentTool:FindFirstChild("Handle") or currentTool:FindFirstChildOfClass("BasePart")
-                                                if toolHandle and typeof(firetouchinterest) == "function" then
-                                                    firetouchinterest(toolHandle, targetPart, 0)
-                                                    firetouchinterest(toolHandle, targetPart, 1)
-                                                end
+                                    if (isDirtyWall or hasDecal or isNamedDirt) and isNamedDirt then
+                                        foundDirty = true
+                                        local targetPos = v.Position
+                                        
+                                        -- Fast Teleport 1.8 studs in front of dirty wall, facing it directly
+                                        root.CFrame = CFrame.lookAt(targetPos + (v.CFrame.LookVector * 2.2), targetPos)
+                                        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+                                        
+                                        if currentTool then
+                                            currentTool:Activate()
+                                            local toolHandle = currentTool:FindFirstChild("Handle") or currentTool:FindFirstChildOfClass("BasePart")
+                                            if toolHandle and typeof(firetouchinterest) == "function" then
+                                                firetouchinterest(toolHandle, v, 0)
+                                                firetouchinterest(toolHandle, v, 1)
                                             end
-
-                                            -- Character Touch Interest
-                                            if typeof(firetouchinterest) == "function" then
-                                                firetouchinterest(root, targetPart, 0)
-                                                firetouchinterest(root, targetPart, 1)
-                                            end
-                                            
-                                            task.wait(0.03)
                                         end
+
+                                        -- Fire Touch Interest with Wall Part
+                                        if typeof(firetouchinterest) == "function" then
+                                            firetouchinterest(root, v, 0)
+                                            firetouchinterest(root, v, 1)
+                                        end
+                                        
+                                        task.wait(0.03)
                                     end
                                 end
                             end
                         end
 
-                        -- Fallback Sweep if no specific dirt parts remain
+                        -- Fallback Sweep
                         if not foundDirty then
                             if currentTool then
                                 currentTool:Activate()
