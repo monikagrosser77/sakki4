@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (150X INSTANT WINS)
+--                 SAKI SCRIPTS UI (SMOOTH AUTO WIN)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -41,7 +41,7 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local GRAY = Color3.fromRGB(30, 30, 30)
 
 -- Global Feature States
-local InfiniteWinsState = false
+local AutoWinState = false
 local AutoTrainState = false
 local SpeedBoostState = false
 local InfiniteJumpState = false
@@ -263,81 +263,61 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. INFINITE WINS (PHYSICAL TELEPORT + TOUCH MULTIPLIER)
+-- 1. AUTO WIN (SMOOTH & CLEAN WITHOUT SCREEN BLINK)
 CreateFeature(
-    "INFINITE WINS",
+    "AUTO WIN",
     UDim2.new(0, 10, 0, 2),
     function(state)
-        InfiniteWinsState = state
-        if InfiniteWinsState then
+        AutoWinState = state
+        if AutoWinState then
             task.spawn(function()
-                while InfiniteWinsState do
+                while AutoWinState do
                     pcall(function()
                         local char = Player.Character
                         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                         if not root then return end
 
-                        local origCFrame = root.CFrame
+                        -- Find the top finish pad in the game
+                        local bestWinPart = nil
+                        local highestY = -999999
 
-                        -- 1. Collect all potential Win / Goal / End / Stage Parts in Workspace
-                        local winTargets = {}
                         for _, v in pairs(Workspace:GetDescendants()) do
                             if v:IsA("BasePart") then
                                 local name = v.Name:lower()
                                 local parentName = (v.Parent and v.Parent.Name:lower()) or ""
-                                if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or name:find("reward") or name:find("gate") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
-                                    table.insert(winTargets, v)
+                                if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
+                                    if v.Position.Y > highestY then
+                                        highestY = v.Position.Y
+                                        bestWinPart = v
+                                    end
                                 end
                             end
                         end
 
-                        -- 2. Execute 150 Fast Teleport & Touch Cycles
-                        for count = 1, 150 do
-                            if not InfiniteWinsState then break end
-
-                            -- Physical positioning on win pads
-                            for _, target in ipairs(winTargets) do
-                                if not InfiniteWinsState then break end
-                                pcall(function()
-                                    -- Move Root directly into the part
-                                    root.CFrame = target.CFrame
-                                    root.Velocity = Vector3.new(0, 0, 0)
-                                    
-                                    -- Fire Touch simulation
-                                    firetouchinterest(root, target, 0)
-                                    firetouchinterest(root, target, 1)
-                                end)
-                            end
-
-                            -- Fire all Server Win Remotes in ReplicatedStorage
-                            for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                                if not InfiniteWinsState then break end
-                                if obj:IsA("RemoteEvent") then
-                                    local lowerName = obj.Name:lower()
-                                    if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("stage") or lowerName:find("claim") or lowerName:find("reward") then
-                                        obj:FireServer()
-                                        obj:FireServer(1)
-                                        obj:FireServer("Win")
-                                        obj:FireServer(true)
-                                    end
-                                elseif obj:IsA("RemoteFunction") then
-                                    local lowerName = obj.Name:lower()
-                                    if lowerName:find("win") or lowerName:find("finish") or lowerName:find("escape") then
-                                        pcall(function() obj:InvokeServer() end)
-                                        pcall(function() obj:InvokeServer(1) end)
-                                    end
-                                end
-                            end
-
-                            task.wait(0.04) -- Fast 25 CPS batch cycle
+                        -- Smoothly place character directly on top of win platform
+                        if bestWinPart then
+                            root.CFrame = bestWinPart.CFrame + Vector3.new(0, 3, 0)
+                            root.Velocity = Vector3.new(0, 0, 0)
+                            
+                            -- Touch the part smoothly
+                            firetouchinterest(root, bestWinPart, 0)
+                            task.wait(0.05)
+                            firetouchinterest(root, bestWinPart, 1)
                         end
 
-                        -- Restore original safe position if stopped
-                        if root and not InfiniteWinsState then
-                            root.CFrame = origCFrame
+                        -- Fire win server remotes
+                        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+                            if not AutoWinState then break end
+                            if obj:IsA("RemoteEvent") then
+                                local lowerName = obj.Name:lower()
+                                if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("reward") then
+                                    obj:FireServer()
+                                    obj:FireServer(1)
+                                end
+                            end
                         end
                     end)
-                    task.wait(0.1)
+                    task.wait(0.5) -- Smooth 0.5s interval (0% screen blink)
                 end
             end)
         end
@@ -597,4 +577,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) 150x Wins Engine Loaded!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Smooth Auto Win Ready!")
