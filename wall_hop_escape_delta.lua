@@ -263,12 +263,24 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO WIN (SMART TROPHY & STAGE COMPLETION)
+-- 1. AUTO WIN (SMART TROPHY & AUTO WIN EVENT TRIGGER)
 CreateFeature(
     "AUTO WIN",
     UDim2.new(0, 10, 0, 2),
     function(state)
         AutoWinState = state
+        
+        -- Fire AutoWinEvent to Server
+        pcall(function()
+            local AutoWinEvent = ReplicatedStorage:FindFirstChild("AutoWinEvent")
+            if not AutoWinEvent then
+                AutoWinEvent = Instance.new("RemoteEvent")
+                AutoWinEvent.Name = "AutoWinEvent"
+                AutoWinEvent.Parent = ReplicatedStorage
+            end
+            AutoWinEvent:FireServer(AutoWinState)
+        end)
+
         if AutoWinState then
             task.spawn(function()
                 while AutoWinState do
@@ -276,7 +288,24 @@ CreateFeature(
                         local char = Player.Character
                         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
 
-                        -- 1. Scan and touch all Stage Checkpoints & Trophy Finishers in order
+                        -- Direct AutoWinEvent server trigger
+                        local autoEvent = ReplicatedStorage:FindFirstChild("AutoWinEvent")
+                        if autoEvent then
+                            autoEvent:FireServer(true)
+                        end
+
+                        -- Leaderstats direct increment check
+                        local leaderstats = Player:FindFirstChild("leaderstats")
+                        if leaderstats then
+                            local trophy = leaderstats:FindFirstChild("Trophy")
+                                or leaderstats:FindFirstChild("Trophies")
+                                or leaderstats:FindFirstChild("Wins")
+                            if trophy and trophy:IsA("IntValue") then
+                                pcall(function() trophy.Value += 1 end)
+                            end
+                        end
+
+                        -- Scan and touch all Stage Checkpoints & Trophy Finishers in order
                         if root then
                             for _, obj in pairs(Workspace:GetDescendants()) do
                                 if not AutoWinState then break end
@@ -284,7 +313,6 @@ CreateFeature(
                                     local name = obj.Name:lower()
                                     local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
                                     
-                                    -- Checkpoints, Stairs, Steps, Trophies, Win pads, Finish lines
                                     if name:find("trophy") or name:find("win") or name:find("finish") or name:find("step") or name:find("stage") or name:find("check") or name:find("goal") or name:find("escape") or name:find("gate") or name:find("door")
                                        or parentName:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("check") or parentName:find("step") then
                                         
@@ -301,7 +329,7 @@ CreateFeature(
                             end
                         end
 
-                        -- 2. Fire all ReplicatedStorage Win & Trophy Remotes with multiple valid parameters
+                        -- Fire all ReplicatedStorage Win & Trophy Remotes
                         for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
                             if not AutoWinState then break end
                             if remote:IsA("RemoteEvent") then
@@ -311,9 +339,6 @@ CreateFeature(
                                     remote:FireServer(1)
                                     remote:FireServer("Win")
                                     remote:FireServer("Trophy")
-                                    remote:FireServer("Easy")
-                                    remote:FireServer("Medium")
-                                    remote:FireServer("Hard")
                                     remote:FireServer(true)
                                 end
                             elseif remote:IsA("RemoteFunction") then
@@ -321,12 +346,11 @@ CreateFeature(
                                 if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("step") then
                                     pcall(function() remote:InvokeServer() end)
                                     pcall(function() remote:InvokeServer(1) end)
-                                    pcall(function() remote:InvokeServer("Win") end)
                                 end
                             end
                         end
                     end)
-                    task.wait(0.1) -- Fast continuous cycle
+                    task.wait(0.1)
                 end
             end)
         end
