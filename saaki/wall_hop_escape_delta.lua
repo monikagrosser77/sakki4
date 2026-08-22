@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (STATIONARY AUTO WIN)
+--                 SAKI SCRIPTS UI (SMART AUTO WIN)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -263,7 +263,7 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO WIN (100% STATIONARY - PLAYER DOES NOT MOVE)
+-- 1. AUTO WIN (SMART TROPHY & STAGE COMPLETION)
 CreateFeature(
     "AUTO WIN",
     UDim2.new(0, 10, 0, 2),
@@ -276,55 +276,64 @@ CreateFeature(
                         local char = Player.Character
                         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
 
-                        -- 1. Silent Remote Events & Functions Firing (No Movement)
-                        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                            if not AutoWinState then break end
-                            if obj:IsA("RemoteEvent") then
-                                local lowerName = obj.Name:lower()
-                                if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("reward") or lowerName:find("claim") or lowerName:find("stage") or lowerName:find("reach") or lowerName:find("give") or lowerName:find("add") then
-                                    obj:FireServer()
-                                    obj:FireServer(1)
-                                    obj:FireServer("Win")
-                                    obj:FireServer(true)
-                                end
-                            elseif obj:IsA("RemoteFunction") then
-                                local lowerName = obj.Name:lower()
-                                if lowerName:find("win") or lowerName:find("finish") or lowerName:find("trophy") or lowerName:find("escape") then
-                                    pcall(function() obj:InvokeServer() end)
-                                    pcall(function() obj:InvokeServer(1) end)
+                        -- 1. Scan and touch all Stage Checkpoints & Trophy Finishers in order
+                        if root then
+                            for _, obj in pairs(Workspace:GetDescendants()) do
+                                if not AutoWinState then break end
+                                if obj:IsA("BasePart") then
+                                    local name = obj.Name:lower()
+                                    local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
+                                    
+                                    -- Checkpoints, Stairs, Steps, Trophies, Win pads, Finish lines
+                                    if name:find("trophy") or name:find("win") or name:find("finish") or name:find("step") or name:find("stage") or name:find("check") or name:find("goal") or name:find("escape") or name:find("gate") or name:find("door")
+                                       or parentName:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("check") or parentName:find("step") then
+                                        
+                                        firetouchinterest(root, obj, 0)
+                                        task.wait(0.01)
+                                        firetouchinterest(root, obj, 1)
+                                    end
+                                elseif obj:IsA("ProximityPrompt") then
+                                    local pName = (obj.Parent and obj.Parent.Name:lower()) or ""
+                                    if pName:find("win") or pName:find("trophy") or pName:find("claim") or pName:find("reward") or pName:find("step") then
+                                        fireproximityprompt(obj)
+                                    end
                                 end
                             end
                         end
 
-                        -- 2. Silent Touch Interest Simulation on all Win Pads (Without moving the character)
-                        if root then
-                            for _, v in pairs(Workspace:GetDescendants()) do
-                                if not AutoWinState then break end
-                                if v:IsA("BasePart") then
-                                    local name = v.Name:lower()
-                                    local parentName = (v.Parent and v.Parent.Name:lower()) or ""
-                                    if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
-                                        -- Fire touch interest without altering character position
-                                        firetouchinterest(root, v, 0)
-                                        firetouchinterest(root, v, 1)
-                                    end
-                                elseif v:IsA("ProximityPrompt") then
-                                    local pName = (v.Parent and v.Parent.Name:lower()) or ""
-                                    if pName:find("win") or pName:find("trophy") or pName:find("claim") or pName:find("reward") or pName:find("stage") then
-                                        fireproximityprompt(v)
-                                    end
+                        -- 2. Fire all ReplicatedStorage Win & Trophy Remotes with multiple valid parameters
+                        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+                            if not AutoWinState then break end
+                            if remote:IsA("RemoteEvent") then
+                                local rName = remote.Name:lower()
+                                if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") or rName:find("step") or rName:find("stage") or rName:find("claim") or rName:find("escape") then
+                                    remote:FireServer()
+                                    remote:FireServer(1)
+                                    remote:FireServer("Win")
+                                    remote:FireServer("Trophy")
+                                    remote:FireServer("Easy")
+                                    remote:FireServer("Medium")
+                                    remote:FireServer("Hard")
+                                    remote:FireServer(true)
+                                end
+                            elseif remote:IsA("RemoteFunction") then
+                                local rName = remote.Name:lower()
+                                if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("step") then
+                                    pcall(function() remote:InvokeServer() end)
+                                    pcall(function() remote:InvokeServer(1) end)
+                                    pcall(function() remote:InvokeServer("Win") end)
                                 end
                             end
                         end
                     end)
-                    task.wait(0.1) -- Rapid background loop
+                    task.wait(0.1) -- Fast continuous cycle
                 end
             end)
         end
     end
 )
 
--- 2. AUTO TRAIN (AUTO HOP / POWER TRAINING)
+-- 2. AUTO TRAIN (AUTO HOP / STEP & POWER TRAINING)
 CreateFeature(
     "AUTO TRAIN",
     UDim2.new(0, 10, 0, 42),
@@ -354,12 +363,12 @@ CreateFeature(
                             VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
                             VirtualUser:Button1Up(Vector2.new(0, 0), Camera.CFrame)
 
-                            -- Remote events triggering for Training / Hop / Jump Power
+                            -- Remote events triggering for Training / Hop / Jump / Step Power
                             for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
                                 if not AutoTrainState then break end
                                 if obj:IsA("RemoteEvent") then
                                     local lowerName = obj.Name:lower()
-                                    if lowerName:find("train") or lowerName:find("jump") or lowerName:find("hop") or lowerName:find("power") or lowerName:find("click") or lowerName:find("add") then
+                                    if lowerName:find("train") or lowerName:find("jump") or lowerName:find("hop") or lowerName:find("power") or lowerName:find("click") or lowerName:find("add") or lowerName:find("step") then
                                         obj:FireServer()
                                         obj:FireServer(1)
                                     end
@@ -577,4 +586,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Stationary Auto Win Loaded!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Smart Auto Win Ready!")
