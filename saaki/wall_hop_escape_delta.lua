@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (CLEAN MINI)
+--                 SAKI SCRIPTS UI (INFINITE WINS)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -41,6 +41,7 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local GRAY = Color3.fromRGB(30, 30, 30)
 
 -- Global Feature States
+local InfiniteWinsState = false
 local AutoTrainState = false
 local SpeedBoostState = false
 local InfiniteJumpState = false
@@ -58,15 +59,15 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetParent
 
 --========================================================--
--- MAIN FRAME (MINI SIZE: 245 x 220)
+-- MAIN FRAME (MINI SIZE: 250 x 255)
 --========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 
-Main.Size = UDim2.fromOffset(245, 220)
-Main.Position = UDim2.new(0.5, -122, 0.5, -110)
+Main.Size = UDim2.fromOffset(250, 255)
+Main.Position = UDim2.new(0.5, -125, 0.5, -127)
 
 Main.BackgroundColor3 = DARK
 Main.BorderSizePixel = 0
@@ -184,7 +185,7 @@ local function CreateFeature(name, position, callback)
     Feature.Name = name
     Feature.Parent = Content
     Feature.Position = position
-    Feature.Size = UDim2.new(1, -20, 0, 36)
+    Feature.Size = UDim2.new(1, -20, 0, 34)
     Feature.BackgroundColor3 = DARK2
     Feature.BorderSizePixel = 0
 
@@ -213,8 +214,8 @@ local function CreateFeature(name, position, callback)
     local Toggle = Instance.new("TextButton")
     Toggle.Name = "Toggle"
     Toggle.Parent = Feature
-    Toggle.Size = UDim2.fromOffset(34, 26)
-    Toggle.Position = UDim2.new(1, -42, 0.5, -13)
+    Toggle.Size = UDim2.fromOffset(34, 25)
+    Toggle.Position = UDim2.new(1, -42, 0.5, -12.5)
     Toggle.BackgroundColor3 = RED
     Toggle.BorderSizePixel = 0
     Toggle.Text = ""
@@ -262,10 +263,63 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO TRAIN (AUTO HOP / POWER TRAINING)
+-- 1. INFINITE WINS (INSTANT WIN SCORE MULTIPLIER)
+CreateFeature(
+    "INFINITE WINS",
+    UDim2.new(0, 10, 0, 2),
+    function(state)
+        InfiniteWinsState = state
+        if InfiniteWinsState then
+            task.spawn(function()
+                while InfiniteWinsState do
+                    pcall(function()
+                        local char = Player.Character
+                        local root = char and char:FindFirstChild("HumanoidRootPart")
+
+                        -- 1. Continuous firing of Win RemoteEvents in ReplicatedStorage
+                        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+                            if not InfiniteWinsState then break end
+                            if obj:IsA("RemoteEvent") then
+                                local lowerName = obj.Name:lower()
+                                if lowerName:find("win") or lowerName:find("escape") or lowerName:find("finish") or lowerName:find("stage") or lowerName:find("reward") or lowerName:find("victory") or lowerName:find("claim") or lowerName:find("reach") then
+                                    obj:FireServer()
+                                    obj:FireServer(1)
+                                    obj:FireServer("Win")
+                                end
+                            elseif obj:IsA("RemoteFunction") then
+                                local lowerName = obj.Name:lower()
+                                if lowerName:find("win") or lowerName:find("finish") or lowerName:find("escape") then
+                                    pcall(function() obj:InvokeServer() end)
+                                    pcall(function() obj:InvokeServer(1) end)
+                                end
+                            end
+                        end
+
+                        -- 2. Trigger all Win / Finish / Goal TouchPads in Workspace
+                        if root then
+                            for _, part in pairs(Workspace:GetDescendants()) do
+                                if not InfiniteWinsState then break end
+                                if part:IsA("BasePart") then
+                                    local lowerName = part.Name:lower()
+                                    if lowerName:find("win") or lowerName:find("finish") or lowerName:find("goal") or lowerName:find("end") or lowerName:find("stage") or lowerName:find("escape") or lowerName:find("victory") or lowerName:find("gate") then
+                                        firetouchinterest(root, part, 0)
+                                        firetouchinterest(root, part, 1)
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.1) -- Fast continuous win loop
+                end
+            end)
+        end
+    end
+)
+
+-- 2. AUTO TRAIN (AUTO HOP / POWER TRAINING)
 CreateFeature(
     "AUTO TRAIN",
-    UDim2.new(0, 10, 0, 4),
+    UDim2.new(0, 10, 0, 42),
     function(state)
         AutoTrainState = state
         if AutoTrainState then
@@ -279,42 +333,43 @@ CreateFeature(
                             if not tool then
                                 local bpTool = Player.Backpack:FindFirstChildOfClass("Tool")
                                 if bpTool then
-                                bpTool.Parent = char
-                                tool = bpTool
+                                    bpTool.Parent = char
+                                    tool = bpTool
+                                end
                             end
-                        end
-                        if tool then
-                            tool:Activate()
-                        end
+                            if tool then
+                                tool:Activate()
+                            end
 
-                        -- Click simulation
-                        VirtualUser:CaptureController()
-                        VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
-                        VirtualUser:Button1Up(Vector2.new(0, 0), Camera.CFrame)
+                            -- Click simulation
+                            VirtualUser:CaptureController()
+                            VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                            VirtualUser:Button1Up(Vector2.new(0, 0), Camera.CFrame)
 
-                        -- Remote events triggering for Training / Hop / Jump Power
-                        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                            if not AutoTrainState then break end
-                            if obj:IsA("RemoteEvent") then
-                                local lowerName = obj.Name:lower()
-                                if lowerName:find("train") or lowerName:find("jump") or lowerName:find("hop") or lowerName:find("power") or lowerName:find("click") or lowerName:find("add") then
-                                    obj:FireServer()
-                                    obj:FireServer(1)
+                            -- Remote events triggering for Training / Hop / Jump Power
+                            for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+                                if not AutoTrainState then break end
+                                if obj:IsA("RemoteEvent") then
+                                    local lowerName = obj.Name:lower()
+                                    if lowerName:find("train") or lowerName:find("jump") or lowerName:find("hop") or lowerName:find("power") or lowerName:find("click") or lowerName:find("add") then
+                                        obj:FireServer()
+                                        obj:FireServer(1)
+                                    end
                                 end
                             end
                         end
-                    end
-                end)
-                task.wait(0.05) -- Fast 20 CPS loop
-            end
-        end)
+                    end)
+                    task.wait(0.05) -- Fast 20 CPS loop
+                end
+            end)
+        end
     end
-end)
+)
 
--- 2. SPEED BOOST (FAST WALKSPEED)
+-- 3. SPEED BOOST (FAST WALKSPEED)
 CreateFeature(
     "SPEED BOOST",
-    UDim2.new(0, 10, 0, 46),
+    UDim2.new(0, 10, 0, 82),
     function(state)
         SpeedBoostState = state
         CurrentWalkSpeed = state and 75 or 16
@@ -336,10 +391,10 @@ task.spawn(function()
     end
 end)
 
--- 3. INFINITE JUMP
+-- 4. INFINITE JUMP
 CreateFeature(
     "INFINITE JUMP",
-    UDim2.new(0, 10, 0, 88),
+    UDim2.new(0, 10, 0, 122),
     function(state)
         InfiniteJumpState = state
     end
@@ -395,11 +450,11 @@ Minimize.MouseButton1Click:Connect(function()
         FooterDivider.Visible = false
         MadeBy.Visible = false
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(245, 38)
+            Size = UDim2.fromOffset(250, 38)
         }):Play()
     else
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(245, 220)
+            Size = UDim2.fromOffset(250, 255)
         }):Play()
         task.wait(0.18)
         Content.Visible = true
@@ -514,4 +569,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Updated Successfully!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Infinite Wins Ready!")
