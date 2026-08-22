@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (SMART AUTO WIN)
+--                 SAKI SCRIPTS UI
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -263,94 +263,68 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO WIN (SMART TROPHY & AUTO WIN EVENT TRIGGER)
+-- 1. AUTO WIN (AUTOMATIC TROPHY ACCUMULATOR)
 CreateFeature(
     "AUTO WIN",
     UDim2.new(0, 10, 0, 2),
     function(state)
         AutoWinState = state
-        
-        -- Fire AutoWinEvent to Server
-        pcall(function()
-            local AutoWinEvent = ReplicatedStorage:FindFirstChild("AutoWinEvent")
-            if not AutoWinEvent then
-                AutoWinEvent = Instance.new("RemoteEvent")
-                AutoWinEvent.Name = "AutoWinEvent"
-                AutoWinEvent.Parent = ReplicatedStorage
-            end
-            AutoWinEvent:FireServer(AutoWinState)
-        end)
-
         if AutoWinState then
             task.spawn(function()
                 while AutoWinState do
                     pcall(function()
                         local char = Player.Character
-                        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+                        if char then
+                            local root = char:FindFirstChild("HumanoidRootPart")
+                            local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-                        -- Direct AutoWinEvent server trigger
-                        local autoEvent = ReplicatedStorage:FindFirstChild("AutoWinEvent")
-                        if autoEvent then
-                            autoEvent:FireServer(true)
-                        end
-
-                        -- Leaderstats direct increment check
-                        local leaderstats = Player:FindFirstChild("leaderstats")
-                        if leaderstats then
-                            local trophy = leaderstats:FindFirstChild("Trophy")
-                                or leaderstats:FindFirstChild("Trophies")
-                                or leaderstats:FindFirstChild("Wins")
-                            if trophy and trophy:IsA("IntValue") then
-                                pcall(function() trophy.Value += 1 end)
-                            end
-                        end
-
-                        -- Scan and touch all Stage Checkpoints & Trophy Finishers in order
-                        if root then
-                            for _, obj in pairs(Workspace:GetDescendants()) do
-                                if not AutoWinState then break end
-                                if obj:IsA("BasePart") then
-                                    local name = obj.Name:lower()
-                                    local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
-                                    
-                                    if name:find("trophy") or name:find("win") or name:find("finish") or name:find("step") or name:find("stage") or name:find("check") or name:find("goal") or name:find("escape") or name:find("gate") or name:find("door")
-                                       or parentName:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("check") or parentName:find("step") then
+                            if root and humanoid and humanoid.Health > 0 then
+                                -- Step 1: Find all Win Pads / Finish Areas in Workspace
+                                local winParts = {}
+                                for _, part in pairs(Workspace:GetDescendants()) do
+                                    if part:IsA("BasePart") then
+                                        local pName = part.Name:lower()
+                                        local parentName = (part.Parent and part.Parent.Name:lower()) or ""
                                         
-                                        firetouchinterest(root, obj, 0)
-                                        task.wait(0.01)
-                                        firetouchinterest(root, obj, 1)
-                                    end
-                                elseif obj:IsA("ProximityPrompt") then
-                                    local pName = (obj.Parent and obj.Parent.Name:lower()) or ""
-                                    if pName:find("win") or pName:find("trophy") or pName:find("claim") or pName:find("reward") or pName:find("step") then
-                                        fireproximityprompt(obj)
+                                        if pName:find("win") or pName:find("finish") or pName:find("goal")
+                                           or pName:find("end") or pName:find("trophy") or pName:find("reward")
+                                           or parentName:find("win") or parentName:find("finish") or parentName:find("stages") then
+                                            table.insert(winParts, part)
+                                        end
                                     end
                                 end
-                            end
-                        end
 
-                        -- Fire all ReplicatedStorage Win & Trophy Remotes
-                        for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
-                            if not AutoWinState then break end
-                            if remote:IsA("RemoteEvent") then
-                                local rName = remote.Name:lower()
-                                if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") or rName:find("step") or rName:find("stage") or rName:find("claim") or rName:find("escape") then
-                                    remote:FireServer()
-                                    remote:FireServer(1)
-                                    remote:FireServer("Win")
-                                    remote:FireServer("Trophy")
-                                    remote:FireServer(true)
+                                -- Step 2: Teleport smoothly to the win pad
+                                for _, targetPart in ipairs(winParts) do
+                                    if not AutoWinState then break end
+                                    pcall(function()
+                                        root.CFrame = targetPart.CFrame + Vector3.new(0, 2.5, 0)
+                                        root.Velocity = Vector3.new(0, 0, 0)
+
+                                        -- Touch trigger
+                                        firetouchinterest(root, targetPart, 0)
+                                        task.wait(0.04)
+                                        firetouchinterest(root, targetPart, 1)
+                                    end)
                                 end
-                            elseif remote:IsA("RemoteFunction") then
-                                local rName = remote.Name:lower()
-                                if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("step") then
-                                    pcall(function() remote:InvokeServer() end)
-                                    pcall(function() remote:InvokeServer(1) end)
+
+                                -- Step 3: Trigger any server remotes for win/trophy
+                                for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
+                                    if not AutoWinState then break end
+                                    if remote:IsA("RemoteEvent") then
+                                        local rName = remote.Name:lower()
+                                        if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") then
+                                            remote:FireServer()
+                                            remote:FireServer(1)
+                                        end
+                                    end
                                 end
                             end
                         end
                     end)
-                    task.wait(0.1)
+
+                    -- Safe 1-second delay so trophy increases step by step without crashing/kicking
+                    task.wait(1.0)
                 end
             end)
         end
@@ -610,4 +584,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Smart Auto Win Ready!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Loaded Successfully!")
