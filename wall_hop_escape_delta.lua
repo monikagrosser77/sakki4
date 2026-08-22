@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (SMOOTH AUTO WIN)
+--                 SAKI SCRIPTS UI (STATIONARY AUTO WIN)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -263,7 +263,7 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO WIN (SMOOTH & CLEAN WITHOUT SCREEN BLINK)
+-- 1. AUTO WIN (100% STATIONARY - PLAYER DOES NOT MOVE)
 CreateFeature(
     "AUTO WIN",
     UDim2.new(0, 10, 0, 2),
@@ -275,49 +275,49 @@ CreateFeature(
                     pcall(function()
                         local char = Player.Character
                         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-                        if not root then return end
 
-                        -- Find the top finish pad in the game
-                        local bestWinPart = nil
-                        local highestY = -999999
-
-                        for _, v in pairs(Workspace:GetDescendants()) do
-                            if v:IsA("BasePart") then
-                                local name = v.Name:lower()
-                                local parentName = (v.Parent and v.Parent.Name:lower()) or ""
-                                if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
-                                    if v.Position.Y > highestY then
-                                        highestY = v.Position.Y
-                                        bestWinPart = v
-                                    end
-                                end
-                            end
-                        end
-
-                        -- Smoothly place character directly on top of win platform
-                        if bestWinPart then
-                            root.CFrame = bestWinPart.CFrame + Vector3.new(0, 3, 0)
-                            root.Velocity = Vector3.new(0, 0, 0)
-                            
-                            -- Touch the part smoothly
-                            firetouchinterest(root, bestWinPart, 0)
-                            task.wait(0.05)
-                            firetouchinterest(root, bestWinPart, 1)
-                        end
-
-                        -- Fire win server remotes
+                        -- 1. Silent Remote Events & Functions Firing (No Movement)
                         for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
                             if not AutoWinState then break end
                             if obj:IsA("RemoteEvent") then
                                 local lowerName = obj.Name:lower()
-                                if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("reward") then
+                                if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("reward") or lowerName:find("claim") or lowerName:find("stage") or lowerName:find("reach") or lowerName:find("give") or lowerName:find("add") then
                                     obj:FireServer()
                                     obj:FireServer(1)
+                                    obj:FireServer("Win")
+                                    obj:FireServer(true)
+                                end
+                            elseif obj:IsA("RemoteFunction") then
+                                local lowerName = obj.Name:lower()
+                                if lowerName:find("win") or lowerName:find("finish") or lowerName:find("trophy") or lowerName:find("escape") then
+                                    pcall(function() obj:InvokeServer() end)
+                                    pcall(function() obj:InvokeServer(1) end)
+                                end
+                            end
+                        end
+
+                        -- 2. Silent Touch Interest Simulation on all Win Pads (Without moving the character)
+                        if root then
+                            for _, v in pairs(Workspace:GetDescendants()) do
+                                if not AutoWinState then break end
+                                if v:IsA("BasePart") then
+                                    local name = v.Name:lower()
+                                    local parentName = (v.Parent and v.Parent.Name:lower()) or ""
+                                    if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
+                                        -- Fire touch interest without altering character position
+                                        firetouchinterest(root, v, 0)
+                                        firetouchinterest(root, v, 1)
+                                    end
+                                elseif v:IsA("ProximityPrompt") then
+                                    local pName = (v.Parent and v.Parent.Name:lower()) or ""
+                                    if pName:find("win") or pName:find("trophy") or pName:find("claim") or pName:find("reward") or pName:find("stage") then
+                                        fireproximityprompt(v)
+                                    end
                                 end
                             end
                         end
                     end)
-                    task.wait(0.5) -- Smooth 0.5s interval (0% screen blink)
+                    task.wait(0.1) -- Rapid background loop
                 end
             end)
         end
@@ -577,4 +577,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Smooth Auto Win Ready!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Stationary Auto Win Loaded!")
