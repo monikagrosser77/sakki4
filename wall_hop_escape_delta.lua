@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (INFINITE WINS V2)
+--                 SAKI SCRIPTS UI (150X INSTANT WINS)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -263,7 +263,7 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. INFINITE WINS (MULTI-ENGINE WIN COLLECTOR)
+-- 1. INFINITE WINS (PHYSICAL TELEPORT + TOUCH MULTIPLIER)
 CreateFeature(
     "INFINITE WINS",
     UDim2.new(0, 10, 0, 2),
@@ -274,60 +274,70 @@ CreateFeature(
                 while InfiniteWinsState do
                     pcall(function()
                         local char = Player.Character
-                        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+                        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+                        if not root then return end
 
-                        -- METHOD 1: Fire all Win / Trophy Remotes across ReplicatedStorage & Players
-                        for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                            if not InfiniteWinsState then break end
-                            if obj:IsA("RemoteEvent") then
-                                local lowerName = obj.Name:lower()
-                                if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("stage") or lowerName:find("reward") or lowerName:find("escape") or lowerName:find("reach") or lowerName:find("give") or lowerName:find("add") then
-                                    obj:FireServer()
-                                    obj:FireServer(1)
-                                    obj:FireServer("Win")
-                                    obj:FireServer("Stage")
-                                    obj:FireServer(true)
-                                end
-                            elseif obj:IsA("RemoteFunction") then
-                                local lowerName = obj.Name:lower()
-                                if lowerName:find("win") or lowerName:find("finish") or lowerName:find("trophy") or lowerName:find("escape") then
-                                    pcall(function() obj:InvokeServer() end)
-                                    pcall(function() obj:InvokeServer(1) end)
+                        local origCFrame = root.CFrame
+
+                        -- 1. Collect all potential Win / Goal / End / Stage Parts in Workspace
+                        local winTargets = {}
+                        for _, v in pairs(Workspace:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                local name = v.Name:lower()
+                                local parentName = (v.Parent and v.Parent.Name:lower()) or ""
+                                if name:find("win") or name:find("finish") or name:find("goal") or name:find("end") or name:find("escape") or name:find("trophy") or name:find("reward") or name:find("gate") or parentName:find("win") or parentName:find("stage") or parentName:find("finish") then
+                                    table.insert(winTargets, v)
                                 end
                             end
                         end
 
-                        -- METHOD 2: Direct Win Pad / Stage End Touch Simulation + Proximity Prompts
-                        if root then
-                            for _, v in pairs(Workspace:GetDescendants()) do
+                        -- 2. Execute 150 Fast Teleport & Touch Cycles
+                        for count = 1, 150 do
+                            if not InfiniteWinsState then break end
+
+                            -- Physical positioning on win pads
+                            for _, target in ipairs(winTargets) do
                                 if not InfiniteWinsState then break end
-                                
-                                -- Touch Transmitters & Parts
-                                if v:IsA("BasePart") then
-                                    local lowerName = v.Name:lower()
-                                    local parentName = (v.Parent and v.Parent.Name:lower()) or ""
+                                pcall(function()
+                                    -- Move Root directly into the part
+                                    root.CFrame = target.CFrame
+                                    root.Velocity = Vector3.new(0, 0, 0)
                                     
-                                    if lowerName:find("win") or lowerName:find("finish") or lowerName:find("goal") or lowerName:find("end") or lowerName:find("escape") or lowerName:find("stage") or lowerName:find("trophy") or lowerName:find("checkpoint")
-                                       or parentName:find("win") or parentName:find("finish") or parentName:find("stages") or parentName:find("obby") or parentName:find("tower") then
-                                        
-                                        -- Fire touch interest without moving camera
-                                        firetouchinterest(root, v, 0)
-                                        task.wait(0.01)
-                                        firetouchinterest(root, v, 1)
+                                    -- Fire Touch simulation
+                                    firetouchinterest(root, target, 0)
+                                    firetouchinterest(root, target, 1)
+                                end)
+                            end
+
+                            -- Fire all Server Win Remotes in ReplicatedStorage
+                            for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+                                if not InfiniteWinsState then break end
+                                if obj:IsA("RemoteEvent") then
+                                    local lowerName = obj.Name:lower()
+                                    if lowerName:find("win") or lowerName:find("trophy") or lowerName:find("finish") or lowerName:find("escape") or lowerName:find("stage") or lowerName:find("claim") or lowerName:find("reward") then
+                                        obj:FireServer()
+                                        obj:FireServer(1)
+                                        obj:FireServer("Win")
+                                        obj:FireServer(true)
                                     end
-                                end
-                                
-                                -- ProximityPrompts on Win items
-                                if v:IsA("ProximityPrompt") then
-                                    local pName = (v.Parent and v.Parent.Name:lower()) or ""
-                                    if pName:find("win") or pName:find("trophy") or pName:find("claim") or pName:find("reward") or pName:find("stage") then
-                                        fireproximityprompt(v)
+                                elseif obj:IsA("RemoteFunction") then
+                                    local lowerName = obj.Name:lower()
+                                    if lowerName:find("win") or lowerName:find("finish") or lowerName:find("escape") then
+                                        pcall(function() obj:InvokeServer() end)
+                                        pcall(function() obj:InvokeServer(1) end)
                                     end
                                 end
                             end
+
+                            task.wait(0.04) -- Fast 25 CPS batch cycle
+                        end
+
+                        -- Restore original safe position if stopped
+                        if root and not InfiniteWinsState then
+                            root.CFrame = origCFrame
                         end
                     end)
-                    task.wait(0.08) -- Ultra fast loop (12 times per second)
+                    task.wait(0.1)
                 end
             end)
         end
@@ -587,4 +597,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Infinite Wins V2 Loaded!")
+print("Saki Scripts UI (+1 Wall Hop Escape) 150x Wins Engine Loaded!")
