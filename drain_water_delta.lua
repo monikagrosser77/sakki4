@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI
+--                 SAKI SCRIPTS UI (COMPACT)
 --         +1 DRAIN WATER PER CLICK (DELTA / PC)
 --========================================================--
 
@@ -57,15 +57,15 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetParent
 
 --========================================================--
--- MAIN FRAME
+-- MAIN FRAME (COMPACT SIZE: 380 x 360)
 --========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 
-Main.Size = UDim2.fromOffset(700, 620)
-Main.Position = UDim2.new(0.5, -350, 0.5, -310)
+Main.Size = UDim2.fromOffset(380, 360)
+Main.Position = UDim2.new(0.5, -190, 0.5, -180)
 
 Main.BackgroundColor3 = DARK
 Main.BorderSizePixel = 0
@@ -73,13 +73,13 @@ Main.Active = true
 
 -- Rounded corners
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 28)
+MainCorner.CornerRadius = UDim.new(0, 18)
 MainCorner.Parent = Main
 
 -- Red border
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = RED
-MainStroke.Thickness = 3
+MainStroke.Thickness = 2.5
 MainStroke.Transparency = 0
 MainStroke.Parent = Main
 
@@ -91,7 +91,7 @@ local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
 TopBar.Parent = Main
 
-TopBar.Size = UDim2.new(1, 0, 0, 125)
+TopBar.Size = UDim2.new(1, 0, 0, 60)
 TopBar.BackgroundColor3 = DARK
 TopBar.BorderSizePixel = 0
 
@@ -103,11 +103,11 @@ local GameName = Instance.new("TextLabel")
 GameName.Name = "GameName"
 GameName.Parent = TopBar
 GameName.BackgroundTransparency = 1
-GameName.Position = UDim2.fromOffset(25, 20)
-GameName.Size = UDim2.new(1, -180, 0, 75)
+GameName.Position = UDim2.fromOffset(16, 8)
+GameName.Size = UDim2.new(1, -115, 0, 44)
 GameName.Text = GAME_NAME
 GameName.TextColor3 = RED
-GameName.TextSize = 36
+GameName.TextSize = 22
 GameName.Font = Enum.Font.Bangers
 GameName.TextXAlignment = Enum.TextXAlignment.Left
 GameName.TextYAlignment = Enum.TextYAlignment.Center
@@ -120,23 +120,23 @@ GameName.TextScaled = false
 local Minimize = Instance.new("TextButton")
 Minimize.Name = "Minimize"
 Minimize.Parent = TopBar
-Minimize.Size = UDim2.fromOffset(70, 58)
-Minimize.Position = UDim2.new(1, -165, 0, 25)
+Minimize.Size = UDim2.fromOffset(40, 34)
+Minimize.Position = UDim2.new(1, -94, 0, 13)
 Minimize.BackgroundColor3 = DARK2
 Minimize.BorderSizePixel = 0
 Minimize.Text = "−"
 Minimize.TextColor3 = WHITE
-Minimize.TextSize = 38
+Minimize.TextSize = 24
 Minimize.Font = Enum.Font.GothamBold
 Minimize.AutoButtonColor = false
 
 local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 15)
+MinCorner.CornerRadius = UDim.new(0, 8)
 MinCorner.Parent = Minimize
 
 local MinStroke = Instance.new("UIStroke")
 MinStroke.Color = RED
-MinStroke.Thickness = 2
+MinStroke.Thickness = 1.5
 MinStroke.Parent = Minimize
 
 --========================================================--
@@ -146,23 +146,23 @@ MinStroke.Parent = Minimize
 local Close = Instance.new("TextButton")
 Close.Name = "Close"
 Close.Parent = TopBar
-Close.Size = UDim2.fromOffset(70, 58)
-Close.Position = UDim2.new(1, -82, 0, 25)
+Close.Size = UDim2.fromOffset(40, 34)
+Close.Position = UDim2.new(1, -48, 0, 13)
 Close.BackgroundColor3 = DARK2
 Close.BorderSizePixel = 0
 Close.Text = "X"
 Close.TextColor3 = RED
-Close.TextSize = 31
+Close.TextSize = 18
 Close.Font = Enum.Font.GothamBold
 Close.AutoButtonColor = false
 
 local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 15)
+CloseCorner.CornerRadius = UDim.new(0, 8)
 CloseCorner.Parent = Close
 
 local CloseStroke = Instance.new("UIStroke")
 CloseStroke.Color = RED
-CloseStroke.Thickness = 2
+CloseStroke.Thickness = 1.5
 CloseStroke.Parent = Close
 
 --========================================================--
@@ -172,8 +172,8 @@ CloseStroke.Parent = Close
 local TopDivider = Instance.new("Frame")
 TopDivider.Name = "TopDivider"
 TopDivider.Parent = Main
-TopDivider.Position = UDim2.fromOffset(0, 122)
-TopDivider.Size = UDim2.new(1, 0, 0, 3)
+TopDivider.Position = UDim2.fromOffset(0, 58)
+TopDivider.Size = UDim2.new(1, 0, 0, 2)
 TopDivider.BackgroundColor3 = RED
 TopDivider.BorderSizePixel = 0
 
@@ -184,8 +184,8 @@ TopDivider.BorderSizePixel = 0
 local Content = Instance.new("Frame")
 Content.Name = "Content"
 Content.Parent = Main
-Content.Position = UDim2.fromOffset(0, 125)
-Content.Size = UDim2.new(1, 0, 1, -205)
+Content.Position = UDim2.fromOffset(0, 62)
+Content.Size = UDim2.new(1, 0, 1, -112)
 Content.BackgroundTransparency = 1
 
 --========================================================--
@@ -197,28 +197,28 @@ local function CreateFeature(name, position, callback)
     Feature.Name = name
     Feature.Parent = Content
     Feature.Position = position
-    Feature.Size = UDim2.new(1, -100, 0, 100)
+    Feature.Size = UDim2.new(1, -40, 0, 58)
     Feature.BackgroundColor3 = DARK2
     Feature.BorderSizePixel = 0
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 18)
+    Corner.CornerRadius = UDim.new(0, 12)
     Corner.Parent = Feature
 
     local Stroke = Instance.new("UIStroke")
     Stroke.Color = Color3.fromRGB(40, 40, 40)
-    Stroke.Thickness = 2
+    Stroke.Thickness = 1.5
     Stroke.Parent = Feature
 
     local Label = Instance.new("TextLabel")
     Label.Name = "Label"
     Label.Parent = Feature
     Label.BackgroundTransparency = 1
-    Label.Position = UDim2.fromOffset(30, 0)
-    Label.Size = UDim2.new(1, -155, 1, 0)
+    Label.Position = UDim2.fromOffset(18, 0)
+    Label.Size = UDim2.new(1, -90, 1, 0)
     Label.Text = name
     Label.TextColor3 = WHITE
-    Label.TextSize = 36
+    Label.TextSize = 22
     Label.Font = Enum.Font.Bangers
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.TextYAlignment = Enum.TextYAlignment.Center
@@ -226,15 +226,15 @@ local function CreateFeature(name, position, callback)
     local Toggle = Instance.new("TextButton")
     Toggle.Name = "Toggle"
     Toggle.Parent = Feature
-    Toggle.Size = UDim2.fromOffset(82, 72)
-    Toggle.Position = UDim2.new(1, -105, 0.5, -36)
+    Toggle.Size = UDim2.fromOffset(50, 42)
+    Toggle.Position = UDim2.new(1, -62, 0.5, -21)
     Toggle.BackgroundColor3 = RED
     Toggle.BorderSizePixel = 0
     Toggle.Text = ""
     Toggle.AutoButtonColor = false
 
     local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 16)
+    ToggleCorner.CornerRadius = UDim.new(0, 10)
     ToggleCorner.Parent = Toggle
 
     local Enabled = false
@@ -278,7 +278,7 @@ end
 -- 1. AUTO COLLECT WATER / CLICK
 CreateFeature(
     "AUTO COLLECT WATER",
-    UDim2.new(0, 50, 0, 25),
+    UDim2.new(0, 20, 0, 12),
     function(state)
         AutoWaterState = state
         if AutoWaterState then
@@ -316,7 +316,7 @@ CreateFeature(
 -- 2. AUTO REBIRTH
 CreateFeature(
     "AUTO REBIRTH",
-    UDim2.new(0, 50, 0, 145),
+    UDim2.new(0, 20, 0, 80),
     function(state)
         AutoRebirthState = state
         if AutoRebirthState then
@@ -360,7 +360,7 @@ CreateFeature(
 -- 3. INFINITE JUMP
 CreateFeature(
     "INFINITE JUMP",
-    UDim2.new(0, 50, 0, 265),
+    UDim2.new(0, 20, 0, 148),
     function(state)
         InfiniteJumpState = state
     end
@@ -384,8 +384,8 @@ end)
 local FooterDivider = Instance.new("Frame")
 FooterDivider.Name = "FooterDivider"
 FooterDivider.Parent = Main
-FooterDivider.Position = UDim2.new(0, 0, 1, -80)
-FooterDivider.Size = UDim2.new(1, 0, 0, 3)
+FooterDivider.Position = UDim2.new(0, 0, 1, -48)
+FooterDivider.Size = UDim2.new(1, 0, 0, 2)
 FooterDivider.BackgroundColor3 = RED
 FooterDivider.BorderSizePixel = 0
 
@@ -393,12 +393,12 @@ local MadeBy = Instance.new("TextLabel")
 MadeBy.Name = "MadeBy"
 MadeBy.Parent = Main
 MadeBy.BackgroundTransparency = 1
-MadeBy.Position = UDim2.new(0, 0, 1, -72)
-MadeBy.Size = UDim2.new(1, 0, 0, 60)
+MadeBy.Position = UDim2.new(0, 0, 1, -44)
+MadeBy.Size = UDim2.new(1, 0, 0, 38)
 MadeBy.RichText = true
 MadeBy.Text = 'MADE BY: <font color="rgb(255,25,35)">' .. CREDIT .. '</font>'
 MadeBy.TextColor3 = WHITE
-MadeBy.TextSize = 31
+MadeBy.TextSize = 19
 MadeBy.Font = Enum.Font.Bangers
 MadeBy.TextXAlignment = Enum.TextXAlignment.Center
 MadeBy.TextYAlignment = Enum.TextYAlignment.Center
@@ -415,14 +415,14 @@ Minimize.MouseButton1Click:Connect(function()
         Content.Visible = false
         FooterDivider.Visible = false
         MadeBy.Visible = false
-        TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(700, 125)
+        TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(380, 60)
         }):Play()
     else
-        TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(700, 620)
+        TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(380, 360)
         }):Play()
-        task.wait(0.2)
+        task.wait(0.18)
         Content.Visible = true
         FooterDivider.Visible = true
         MadeBy.Visible = true
@@ -510,12 +510,12 @@ end)
 
 local FloatingBtn = Instance.new("TextButton")
 FloatingBtn.Name = "FloatingBtn"
-FloatingBtn.Size = UDim2.fromOffset(60, 60)
-FloatingBtn.Position = UDim2.new(0, 20, 0.5, -30)
+FloatingBtn.Size = UDim2.fromOffset(48, 48)
+FloatingBtn.Position = UDim2.new(0, 15, 0.5, -24)
 FloatingBtn.BackgroundColor3 = DARK
 FloatingBtn.Text = "💧"
 FloatingBtn.TextColor3 = RED
-FloatingBtn.TextSize = 28
+FloatingBtn.TextSize = 22
 FloatingBtn.Font = Enum.Font.Bangers
 FloatingBtn.Parent = ScreenGui
 FloatingBtn.Active = true
@@ -527,7 +527,7 @@ FloatCorner.Parent = FloatingBtn
 
 local FloatStroke = Instance.new("UIStroke")
 FloatStroke.Color = RED
-FloatStroke.Thickness = 2.5
+FloatStroke.Thickness = 2
 FloatStroke.Parent = FloatingBtn
 
 FloatingBtn.MouseButton1Click:Connect(function()
@@ -535,4 +535,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Drain Water Per Click) Loaded Successfully!")
+print("Saki Scripts UI (Compact) Loaded!")
