@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI
+--                 SAKI SCRIPTS UI (CLEAN MINI)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -42,8 +42,6 @@ local GRAY = Color3.fromRGB(30, 30, 30)
 
 -- Global Feature States
 local AutoTrainState = false
-local AutoWinState = false
-local AutoRebirthState = false
 local SpeedBoostState = false
 local InfiniteJumpState = false
 local CurrentWalkSpeed = 16
@@ -60,15 +58,15 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetParent
 
 --========================================================--
--- MAIN FRAME (MINI COMPACT: 250 x 270)
+-- MAIN FRAME (MINI SIZE: 245 x 220)
 --========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 
-Main.Size = UDim2.fromOffset(250, 270)
-Main.Position = UDim2.new(0.5, -125, 0.5, -135)
+Main.Size = UDim2.fromOffset(245, 220)
+Main.Position = UDim2.new(0.5, -122, 0.5, -110)
 
 Main.BackgroundColor3 = DARK
 Main.BorderSizePixel = 0
@@ -106,7 +104,7 @@ GameName.Position = UDim2.fromOffset(12, 0)
 GameName.Size = UDim2.new(1, -75, 1, 0)
 GameName.Text = GAME_NAME
 GameName.TextColor3 = RED
-GameName.TextSize = 15
+GameName.TextSize = 16
 GameName.Font = Enum.Font.Bangers
 GameName.TextXAlignment = Enum.TextXAlignment.Left
 GameName.TextYAlignment = Enum.TextYAlignment.Center
@@ -167,48 +165,28 @@ TopDivider.BackgroundColor3 = RED
 TopDivider.BorderSizePixel = 0
 
 --========================================================--
--- CONTENT SCROLL CONTAINER
+-- CONTENT
 --========================================================--
 
 local Content = Instance.new("Frame")
 Content.Name = "Content"
 Content.Parent = Main
-Content.Position = UDim2.fromOffset(0, 41)
+Content.Position = UDim2.fromOffset(0, 42)
 Content.Size = UDim2.new(1, 0, 1, -70)
 Content.BackgroundTransparency = 1
 
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Name = "Scroll"
-Scroll.Parent = Content
-Scroll.Size = UDim2.new(1, 0, 1, 0)
-Scroll.BackgroundTransparency = 1
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 3
-Scroll.ScrollBarImageColor3 = RED
-Scroll.CanvasSize = UDim2.new(0, 0, 0, 215)
-
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.Parent = Scroll
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Padding = UDim.new(0, 6)
-ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local TopPadding = Instance.new("UIPadding")
-TopPadding.PaddingTop = UDim.new(0, 4)
-TopPadding.Parent = Scroll
-
 --========================================================--
--- FEATURE CREATOR (TOGGLE)
+-- FEATURE CREATOR
 --========================================================--
 
-local function CreateFeature(name, layoutOrder, callback)
+local function CreateFeature(name, position, callback)
     local Feature = Instance.new("Frame")
     Feature.Name = name
-    Feature.Parent = Scroll
-    Feature.Size = UDim2.new(1, -16, 0, 36)
+    Feature.Parent = Content
+    Feature.Position = position
+    Feature.Size = UDim2.new(1, -20, 0, 36)
     Feature.BackgroundColor3 = DARK2
     Feature.BorderSizePixel = 0
-    Feature.LayoutOrder = layoutOrder
 
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
@@ -236,7 +214,7 @@ local function CreateFeature(name, layoutOrder, callback)
     Toggle.Name = "Toggle"
     Toggle.Parent = Feature
     Toggle.Size = UDim2.fromOffset(34, 26)
-    Toggle.Position = UDim2.new(1, -40, 0.5, -13)
+    Toggle.Position = UDim2.new(1, -42, 0.5, -13)
     Toggle.BackgroundColor3 = RED
     Toggle.BorderSizePixel = 0
     Toggle.Text = ""
@@ -285,19 +263,22 @@ end
 --========================================================--
 
 -- 1. AUTO TRAIN (AUTO HOP / POWER TRAINING)
-CreateFeature("AUTO TRAIN", 1, function(state)
-    AutoTrainState = state
-    if AutoTrainState then
-        task.spawn(function()
-            while AutoTrainState do
-                pcall(function()
-                    local char = Player.Character
-                    if char then
-                        -- Equip & Activate Training Tool
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if not tool then
-                            local bpTool = Player.Backpack:FindFirstChildOfClass("Tool")
-                            if bpTool then
+CreateFeature(
+    "AUTO TRAIN",
+    UDim2.new(0, 10, 0, 4),
+    function(state)
+        AutoTrainState = state
+        if AutoTrainState then
+            task.spawn(function()
+                while AutoTrainState do
+                    pcall(function()
+                        local char = Player.Character
+                        if char then
+                            -- Equip & Activate Training Tool
+                            local tool = char:FindFirstChildOfClass("Tool")
+                            if not tool then
+                                local bpTool = Player.Backpack:FindFirstChildOfClass("Tool")
+                                if bpTool then
                                 bpTool.Parent = char
                                 tool = bpTool
                             end
@@ -330,99 +311,20 @@ CreateFeature("AUTO TRAIN", 1, function(state)
     end
 end)
 
--- 2. AUTO WIN (STAGE ESCAPE / WIN TOUCH TELEPORT)
-CreateFeature("AUTO WIN", 2, function(state)
-    AutoWinState = state
-    if AutoWinState then
-        task.spawn(function()
-            while AutoWinState do
-                pcall(function()
-                    local char = Player.Character
-                    local root = char and char:FindFirstChild("HumanoidRootPart")
-
-                    -- 1. Fire win remotes in ReplicatedStorage
-                    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                        if not AutoWinState then break end
-                        if obj:IsA("RemoteEvent") then
-                            local lowerName = obj.Name:lower()
-                            if lowerName:find("win") or lowerName:find("escape") or lowerName:find("finish") or lowerName:find("stage") or lowerName:find("reward") or lowerName:find("reach") then
-                                obj:FireServer()
-                                obj:FireServer(1)
-                            end
-                        end
-                    end
-
-                    -- 2. Trigger Win / Stage End pads in Workspace
-                    if root then
-                        for _, part in pairs(Workspace:GetDescendants()) do
-                            if not AutoWinState then break end
-                            if part:IsA("BasePart") then
-                                local lowerName = part.Name:lower()
-                                if lowerName:find("win") or lowerName:find("finish") or lowerName:find("goal") or lowerName:find("end") or lowerName:find("stage") or lowerName:find("escape") then
-                                    firetouchinterest(root, part, 0)
-                                    firetouchinterest(root, part, 1)
-                                end
-                            end
-                        end
-                    end
-                end)
-                task.wait(0.4)
+-- 2. SPEED BOOST (FAST WALKSPEED)
+CreateFeature(
+    "SPEED BOOST",
+    UDim2.new(0, 10, 0, 46),
+    function(state)
+        SpeedBoostState = state
+        CurrentWalkSpeed = state and 75 or 16
+        pcall(function()
+            if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+                Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = CurrentWalkSpeed
             end
         end)
     end
-end)
-
--- 3. AUTO REBIRTH
-CreateFeature("AUTO REBIRTH", 3, function(state)
-    AutoRebirthState = state
-    if AutoRebirthState then
-        task.spawn(function()
-            while AutoRebirthState do
-                pcall(function()
-                    -- Rebirth Remotes
-                    for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
-                        if not AutoRebirthState then break end
-                        if obj:IsA("RemoteEvent") then
-                            local lowerName = obj.Name:lower()
-                            if lowerName:find("rebirth") or lowerName:find("prestige") or lowerName:find("ascend") then
-                                obj:FireServer(1)
-                                obj:FireServer()
-                            end
-                        elseif obj:IsA("RemoteFunction") then
-                            local lowerName = obj.Name:lower()
-                            if lowerName:find("rebirth") or lowerName:find("prestige") or lowerName:find("ascend") then
-                                pcall(function() obj:InvokeServer(1) end)
-                            end
-                        end
-                    end
-
-                    -- Rebirth Prompts in Workspace
-                    for _, v in pairs(Workspace:GetDescendants()) do
-                        if not AutoRebirthState then break end
-                        if v:IsA("ProximityPrompt") then
-                            local nameLower = v.Parent.Name:lower()
-                            if nameLower:find("rebirth") or nameLower:find("prestige") then
-                                fireproximityprompt(v)
-                            end
-                        end
-                    end
-                end)
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
--- 4. SPEED BOOST (FAST WALKSPEED)
-CreateFeature("SPEED BOOST", 4, function(state)
-    SpeedBoostState = state
-    CurrentWalkSpeed = state and 75 or 16
-    pcall(function()
-        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-            Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = CurrentWalkSpeed
-        end
-    end)
-end)
+)
 
 task.spawn(function()
     while task.wait(0.2) do
@@ -434,10 +336,14 @@ task.spawn(function()
     end
 end)
 
--- 5. INFINITE JUMP
-CreateFeature("INFINITE JUMP", 5, function(state)
-    InfiniteJumpState = state
-end)
+-- 3. INFINITE JUMP
+CreateFeature(
+    "INFINITE JUMP",
+    UDim2.new(0, 10, 0, 88),
+    function(state)
+        InfiniteJumpState = state
+    end
+)
 
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpState then
@@ -489,11 +395,11 @@ Minimize.MouseButton1Click:Connect(function()
         FooterDivider.Visible = false
         MadeBy.Visible = false
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(250, 38)
+            Size = UDim2.fromOffset(245, 38)
         }):Play()
     else
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(250, 270)
+            Size = UDim2.fromOffset(245, 220)
         }):Play()
         task.wait(0.18)
         Content.Visible = true
@@ -608,4 +514,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Loaded Successfully!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Updated Successfully!")
