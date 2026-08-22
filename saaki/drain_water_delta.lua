@@ -1,5 +1,5 @@
 --========================================================--
---              SAKI SCRIPTS UI (ULTRA COMPACT)
+--              SAKI SCRIPTS UI (PERFECT ROUNDED)
 --         +1 DRAIN WATER PER CLICK (DELTA / PC)
 --========================================================--
 
@@ -57,7 +57,7 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetParent
 
 --========================================================--
--- MAIN FRAME (MINI SIZE: 245 x 220)
+-- MAIN FRAME (PERFECT 4-CORNER ROUNDED)
 --========================================================--
 
 local Main = Instance.new("Frame")
@@ -71,9 +71,9 @@ Main.BackgroundColor3 = DARK
 Main.BorderSizePixel = 0
 Main.Active = true
 
--- Rounded corners
+-- Rounded corners for all 4 edges
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.CornerRadius = UDim.new(0, 16)
 MainCorner.Parent = Main
 
 -- Red border
@@ -84,15 +84,14 @@ MainStroke.Transparency = 0
 MainStroke.Parent = Main
 
 --========================================================--
--- TOP BAR
+-- TOP BAR (Transparent to preserve top rounded corners)
 --========================================================--
 
 local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
 TopBar.Parent = Main
-
 TopBar.Size = UDim2.new(1, 0, 0, 38)
-TopBar.BackgroundColor3 = DARK
+TopBar.BackgroundTransparency = 1
 TopBar.BorderSizePixel = 0
 
 --========================================================--
@@ -103,7 +102,7 @@ local GameName = Instance.new("TextLabel")
 GameName.Name = "GameName"
 GameName.Parent = TopBar
 GameName.BackgroundTransparency = 1
-GameName.Position = UDim2.fromOffset(10, 0)
+GameName.Position = UDim2.fromOffset(12, 0)
 GameName.Size = UDim2.new(1, -75, 1, 0)
 GameName.Text = GAME_NAME
 GameName.TextColor3 = RED
@@ -534,4 +533,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (Ultra Compact) Loaded!")
+print("Saki Scripts UI (Perfect Rounded) Loaded!")
