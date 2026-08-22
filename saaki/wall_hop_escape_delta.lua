@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (PHYSICAL GLIDE WIN)
+--                 SAKI SCRIPTS UI (INFINITE WINS)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -41,7 +41,7 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local GRAY = Color3.fromRGB(30, 30, 30)
 
 -- Global Feature States
-local AutoWinState = false
+local InfiniteWinsState = false
 local AutoTrainState = false
 local SpeedBoostState = false
 local InfiniteJumpState = false
@@ -263,15 +263,15 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. AUTO WIN (PHYSICAL GLIDE TO TROPHY PADS - NO FALL / NO BLINK)
+-- 1. INFINITE WINS (SMOOTH +1 WINS AUTO COLLECTOR - ZERO VIBRATION)
 CreateFeature(
-    "AUTO WIN",
+    "INFINITE WINS",
     UDim2.new(0, 10, 0, 2),
     function(state)
-        AutoWinState = state
-        if AutoWinState then
+        InfiniteWinsState = state
+        if InfiniteWinsState then
             task.spawn(function()
-                while AutoWinState do
+                while InfiniteWinsState do
                     pcall(function()
                         local char = Player.Character
                         if char then
@@ -279,64 +279,51 @@ CreateFeature(
                             local humanoid = char:FindFirstChildOfClass("Humanoid")
 
                             if root and humanoid and humanoid.Health > 0 then
-                                -- Keep humanoid upright and prevent ragdoll
-                                humanoid:ChangeState(Enum.HumanoidStateType.Running)
-                                
-                                -- 1. Locate all Win / Trophy / Finish parts in map
-                                local winTargets = {}
-                                for _, v in pairs(Workspace:GetDescendants()) do
-                                    if v:IsA("BasePart") then
-                                        local n = v.Name:lower()
-                                        local pn = (v.Parent and v.Parent.Name:lower()) or ""
-                                        if n:find("win") or n:find("trophy") or n:find("finish") or n:find("goal") or n:find("end") or n:find("stage") or n:find("gate")
-                                           or pn:find("win") or pn:find("finish") or pn:find("stages") or pn:find("obby") then
-                                            table.insert(winTargets, v)
+                                -- Step 1: Find the exact yellow "+1 Wins" / "Return" pad
+                                local winPad = nil
+                                for _, obj in pairs(Workspace:GetDescendants()) do
+                                    if obj:IsA("BasePart") then
+                                        local n = obj.Name:lower()
+                                        local pn = (obj.Parent and obj.Parent.Name:lower()) or ""
+                                        
+                                        -- Match "+1 Wins", "Return", "Win", "Finish", "Trophy"
+                                        if n:find("win") or n:find("trophy") or n:find("return") or n:find("finish") or n:find("goal")
+                                           or pn:find("win") or pn:find("finish") or pn:find("return") then
+                                            winPad = obj
+                                            break
                                         end
                                     end
                                 end
 
-                                -- 2. Smoothly position on each win target with safe velocity
-                                for _, target in ipairs(winTargets) do
-                                    if not AutoWinState then break end
-                                    pcall(function()
-                                        -- Anchor velocity to prevent tumbling
-                                        root.Velocity = Vector3.new(0, 0, 0)
-                                        root.RotVelocity = Vector3.new(0, 0, 0)
-                                        
-                                        -- Move character standing on top of target pad
-                                        root.CFrame = CFrame.new(target.Position + Vector3.new(0, 3, 0))
-                                        
-                                        -- Fire touch physics
-                                        firetouchinterest(root, target, 0)
-                                        task.wait(0.05)
-                                        firetouchinterest(root, target, 1)
-                                    end)
+                                -- Step 2: Smooth Touch & Safe Position
+                                if winPad then
+                                    -- Silent touch simulation (No screen shake)
+                                    firetouchinterest(root, winPad, 0)
+                                    task.wait(0.05)
+                                    firetouchinterest(root, winPad, 1)
+
+                                    -- Gentle teleport onto the pad
+                                    root.Velocity = Vector3.new(0, 0, 0)
+                                    root.CFrame = CFrame.new(winPad.Position + Vector3.new(0, 3, 0))
                                 end
 
-                                -- 3. Fire all Win and Trophy remotes
+                                -- Step 3: Fire Win Remotes in ReplicatedStorage
                                 for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
-                                    if not AutoWinState then break end
+                                    if not InfiniteWinsState then break end
                                     if remote:IsA("RemoteEvent") then
                                         local rName = remote.Name:lower()
-                                        if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") or rName:find("stage") or rName:find("give") or rName:find("claim") then
+                                        if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") then
                                             remote:FireServer()
                                             remote:FireServer(1)
-                                            remote:FireServer("Win")
-                                            remote:FireServer("Trophy")
-                                            remote:FireServer(true)
-                                        end
-                                    elseif remote:IsA("RemoteFunction") then
-                                        local rName = remote.Name:lower()
-                                        if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("stage") then
-                                            pcall(function() remote:InvokeServer() end)
-                                            pcall(function() remote:InvokeServer(1) end)
                                         end
                                     end
                                 end
                             end
                         end
                     end)
-                    task.wait(0.8) -- Smooth 0.8s cycle to steadily accumulate trophies without falling
+
+                    -- 1.2 Second Smooth Delay: Allows game to award +1 Win and return player safely without vibrating screen
+                    task.wait(1.2)
                 end
             end)
         end
@@ -596,4 +583,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Physical Glide Win Loaded!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Infinite Wins Ready!")
