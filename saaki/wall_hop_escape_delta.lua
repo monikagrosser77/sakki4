@@ -1,5 +1,5 @@
 --========================================================--
---                 SAKI SCRIPTS UI (INFINITE WINS)
+--                 SAKI SCRIPTS UI (CLEAN MINI)
 --          +1 WALL HOP OBBY ESCAPE (DELTA / PC)
 --========================================================--
 
@@ -41,7 +41,6 @@ local WHITE = Color3.fromRGB(255, 255, 255)
 local GRAY = Color3.fromRGB(30, 30, 30)
 
 -- Global Feature States
-local InfiniteWinsState = false
 local AutoTrainState = false
 local SpeedBoostState = false
 local InfiniteJumpState = false
@@ -59,15 +58,15 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetParent
 
 --========================================================--
--- MAIN FRAME (MINI SIZE: 250 x 255)
+-- MAIN FRAME (MINI COMPACT: 245 x 220)
 --========================================================--
 
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Parent = ScreenGui
 
-Main.Size = UDim2.fromOffset(250, 255)
-Main.Position = UDim2.new(0.5, -125, 0.5, -127)
+Main.Size = UDim2.fromOffset(245, 220)
+Main.Position = UDim2.new(0.5, -122, 0.5, -110)
 
 Main.BackgroundColor3 = DARK
 Main.BorderSizePixel = 0
@@ -185,7 +184,7 @@ local function CreateFeature(name, position, callback)
     Feature.Name = name
     Feature.Parent = Content
     Feature.Position = position
-    Feature.Size = UDim2.new(1, -20, 0, 34)
+    Feature.Size = UDim2.new(1, -20, 0, 36)
     Feature.BackgroundColor3 = DARK2
     Feature.BorderSizePixel = 0
 
@@ -214,8 +213,8 @@ local function CreateFeature(name, position, callback)
     local Toggle = Instance.new("TextButton")
     Toggle.Name = "Toggle"
     Toggle.Parent = Feature
-    Toggle.Size = UDim2.fromOffset(34, 25)
-    Toggle.Position = UDim2.new(1, -42, 0.5, -12.5)
+    Toggle.Size = UDim2.fromOffset(34, 26)
+    Toggle.Position = UDim2.new(1, -42, 0.5, -13)
     Toggle.BackgroundColor3 = RED
     Toggle.BorderSizePixel = 0
     Toggle.Text = ""
@@ -263,77 +262,10 @@ end
 -- FEATURES & IMPLEMENTATION LOGIC
 --========================================================--
 
--- 1. INFINITE WINS (SMOOTH +1 WINS AUTO COLLECTOR - ZERO VIBRATION)
-CreateFeature(
-    "INFINITE WINS",
-    UDim2.new(0, 10, 0, 2),
-    function(state)
-        InfiniteWinsState = state
-        if InfiniteWinsState then
-            task.spawn(function()
-                while InfiniteWinsState do
-                    pcall(function()
-                        local char = Player.Character
-                        if char then
-                            local root = char:FindFirstChild("HumanoidRootPart")
-                            local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-                            if root and humanoid and humanoid.Health > 0 then
-                                -- Step 1: Find the exact yellow "+1 Wins" / "Return" pad
-                                local winPad = nil
-                                for _, obj in pairs(Workspace:GetDescendants()) do
-                                    if obj:IsA("BasePart") then
-                                        local n = obj.Name:lower()
-                                        local pn = (obj.Parent and obj.Parent.Name:lower()) or ""
-                                        
-                                        -- Match "+1 Wins", "Return", "Win", "Finish", "Trophy"
-                                        if n:find("win") or n:find("trophy") or n:find("return") or n:find("finish") or n:find("goal")
-                                           or pn:find("win") or pn:find("finish") or pn:find("return") then
-                                            winPad = obj
-                                            break
-                                        end
-                                    end
-                                end
-
-                                -- Step 2: Smooth Touch & Safe Position
-                                if winPad then
-                                    -- Silent touch simulation (No screen shake)
-                                    firetouchinterest(root, winPad, 0)
-                                    task.wait(0.05)
-                                    firetouchinterest(root, winPad, 1)
-
-                                    -- Gentle teleport onto the pad
-                                    root.Velocity = Vector3.new(0, 0, 0)
-                                    root.CFrame = CFrame.new(winPad.Position + Vector3.new(0, 3, 0))
-                                end
-
-                                -- Step 3: Fire Win Remotes in ReplicatedStorage
-                                for _, remote in pairs(ReplicatedStorage:GetDescendants()) do
-                                    if not InfiniteWinsState then break end
-                                    if remote:IsA("RemoteEvent") then
-                                        local rName = remote.Name:lower()
-                                        if rName:find("win") or rName:find("trophy") or rName:find("finish") or rName:find("reward") then
-                                            remote:FireServer()
-                                            remote:FireServer(1)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
-
-                    -- 1.2 Second Smooth Delay: Allows game to award +1 Win and return player safely without vibrating screen
-                    task.wait(1.2)
-                end
-            end)
-        end
-    end
-)
-
--- 2. AUTO TRAIN (AUTO HOP / STEP & POWER TRAINING)
+-- 1. AUTO TRAIN (AUTO HOP / STEP & POWER TRAINING)
 CreateFeature(
     "AUTO TRAIN",
-    UDim2.new(0, 10, 0, 42),
+    UDim2.new(0, 10, 0, 4),
     function(state)
         AutoTrainState = state
         if AutoTrainState then
@@ -380,10 +312,10 @@ CreateFeature(
     end
 )
 
--- 3. SPEED BOOST (FAST WALKSPEED)
+-- 2. SPEED BOOST (FAST WALKSPEED)
 CreateFeature(
     "SPEED BOOST",
-    UDim2.new(0, 10, 0, 82),
+    UDim2.new(0, 10, 0, 46),
     function(state)
         SpeedBoostState = state
         CurrentWalkSpeed = state and 75 or 16
@@ -405,10 +337,10 @@ task.spawn(function()
     end
 end)
 
--- 4. INFINITE JUMP
+-- 3. INFINITE JUMP
 CreateFeature(
     "INFINITE JUMP",
-    UDim2.new(0, 10, 0, 122),
+    UDim2.new(0, 10, 0, 88),
     function(state)
         InfiniteJumpState = state
     end
@@ -464,11 +396,11 @@ Minimize.MouseButton1Click:Connect(function()
         FooterDivider.Visible = false
         MadeBy.Visible = false
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(250, 38)
+            Size = UDim2.fromOffset(245, 38)
         }):Play()
     else
         TweenService:Create(Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.fromOffset(250, 255)
+            Size = UDim2.fromOffset(245, 220)
         }):Play()
         task.wait(0.18)
         Content.Visible = true
@@ -583,4 +515,4 @@ FloatingBtn.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
 end)
 
-print("Saki Scripts UI (+1 Wall Hop Escape) Infinite Wins Ready!")
+print("Saki Scripts UI (+1 Wall Hop Escape) Clean Mini Loaded!")
